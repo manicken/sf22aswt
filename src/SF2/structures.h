@@ -1,14 +1,9 @@
 #include <Arduino.h>
+#include "enums.h"
 
 namespace SF2
 {
-    class RIFF
-    {
-      public:
-        /** whole file size */
-        long size = 0;
-
-    };
+    
 
     class sfVersionTag
     {
@@ -68,39 +63,17 @@ namespace SF2
         smpl_rec sm24;
     };
 
-    class pdta_rec
-    {
-      public:
-        uint32_t size; // comes from parent LIST
-        /** The Preset Headers */
-        phdr_rec *phdr;
-        /** The Preset Index list */
-        bag_rec *pbag;
-        /** The Preset Modulator list */
-        mod_rec *pmod;
-        /** The Preset Generator list */
-        gen_rec *pgen;
-        /** The Instrument Names and Indices */
-        inst_rec *inst;
-        /** The Instrument Index list */
-        bag_rec *ibag;
-        /** The Instrument Modulator list */
-        mod_rec *imod;
-        /** The Instrument Generator list */
-        gen_rec *igen;
-        /** The Sample Headers */
-        shdr_rec *shdr;
-        pdta_rec()
-        {
-            phdr = new
-        }
-    };
-
     class phdr_rec
     {
       public:
         uint32_t size; // comes from parent LIST
-
+        char achPresetName[20];
+        uint16_t wPreset;
+        uint16_t wBank;
+        uint16_t wPresetBagNdx;
+        int16_t dwLibrary;
+        int16_t dwGenre;
+        int16_t dwMorphology;
     };
 
     /**
@@ -109,7 +82,8 @@ namespace SF2
     class bag_rec
     {
       public:
-
+        uint16_t wGenNdx;
+        uint16_t wModNdx;
     };
     
     struct SFModulator
@@ -134,7 +108,11 @@ namespace SF2
     class mod_rec
     {
       public:
-
+        SFModulator sfModSrcOper;
+        SFGenerator sfModDestOper;
+        int16_t     modAmount;
+        SFModulator sfModAmtSrcOper;
+        SFTransform sfModTransOper;
     };
 
     struct SF2GeneratorAmount
@@ -158,19 +136,66 @@ namespace SF2
     class gen_rec
     {
       public:
-
+        SFGenerator sfGenOper;
+        SF2GeneratorAmount genAmount;
     };
 
     class inst_rec
     {
       public:
-
+        char achInstName[20];
+        uint16_t wInstBagNdx;
     };
 
     class shdr_rec
     {
       public:
+        char achSampleName[20];
+        int16_t dwStart;
+        int16_t dwEnd;
+        int16_t dwStartloop;
+        int16_t dwEndloop;
+        int16_t dwSampleRate;
+        uint8_t byOriginalKey;
+        int8_t chCorrection;
+        uint16_t wSampleLink;
+        SFSampleLink sfSampleType;
+    };
 
+    class pdta_rec
+    {
+      public:
+        uint32_t size; // comes from parent LIST
+        /** The Preset Headers */
+        phdr_rec *phdr;
+        /** The Preset Index list */
+        bag_rec *pbag;
+        /** The Preset Modulator list */
+        mod_rec *pmod;
+        /** The Preset Generator list */
+        gen_rec *pgen;
+        /** The Instrument Names and Indices */
+        inst_rec *inst;
+        /** The Instrument Index list */
+        bag_rec *ibag;
+        /** The Instrument Modulator list */
+        mod_rec *imod;
+        /** The Instrument Generator list */
+        gen_rec *igen;
+        /** The Sample Headers */
+        shdr_rec *shdr;
+        pdta_rec()
+        {
+            phdr = new phdr_rec[0];
+            pbag = new bag_rec[0];
+            pmod = new mod_rec[0];
+            pgen = new gen_rec[0];
+            inst = new inst_rec[0];
+            ibag = new bag_rec[0];
+            imod = new mod_rec[0];
+            igen = new gen_rec[0];
+            shdr = new shdr_rec[0];            
+        }
     };
 
     class sfbk_rec
@@ -182,5 +207,11 @@ namespace SF2
         pdta_rec pdta;
     };
 
-
+    class RIFF
+    {
+      public:
+        /** whole file size */
+        long size = 0;
+        sfbk_rec sfbk;
+    };
 }
