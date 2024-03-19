@@ -56,9 +56,8 @@ void processSerialCommand()
 
         // Check if parsing was successful
         if (error) {
-        SerialUSB1.print("{'log':'JSON parsing failed: ");
-        SerialUSB1.print(error.c_str());
-        SerialUSB1.println("'}");  
+        SerialUSB1.print("error - parsing json failed: ");
+        SerialUSB1.println(error.c_str());
         return;
         }
 
@@ -79,31 +78,42 @@ void processSerialCommand()
         else if (strcmp(command, "read_file") == 0)
         {
             String filePath = doc["path"];
-            SF2::ReadFile(filePath);
+            if (SF2::ReadFile(filePath) == false)
+            {
+                SerialUSB1.print(SF2::lastError);
+                SerialUSB1.print(" @ position: ");
+                SerialUSB1.println(SF2::lastErrorPosition);
+            }
+            //else
+            {
+                SerialUSB1.printf("\ninfo - file size: %ld, sfbk size: %ld\n", SF2::sfFile.size, SF2::sfFile.sfbk.size);
+                SerialUSB1.println(SF2::sfFile.sfbk.info.ToString());
+            }
         }
         else
         {
-            SerialUSB1.print("{'log':'command not found:'"); SerialUSB1.print(command); SerialUSB1.print("'}\n");
+            SerialUSB1.print("info - command not found:'"); SerialUSB1.println(command);
         }
     }
 }
 
 void listFiles(const char *dirname) {
-    File root = SD.open(dirname);
+    File root = SD.open(dirname, FILE_READ);
     if (!root) {
-        SerialUSB1.println("Failed to open directory");
+        SerialUSB1.println("warning - cannot open directory");
+        SerialUSB1.println(dirname);
         return;
     }
     if (!root.isDirectory()) {
-        SerialUSB1.println("Not a directory");
+        SerialUSB1.println("warning - Not a directory");
         return;
     }
 
     //SerialUSB1.println("Files found in root directory:");
-    SerialUSB1.print("{'files':[");
+    SerialUSB1.print("json:{'files':[");
 
     while (true) {
-        File entry = root.openNextFile();
+        File entry = root.openNextFile(FILE_READ);
         if (!entry) {
         // no more files
         break;

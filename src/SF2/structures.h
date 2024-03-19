@@ -12,6 +12,15 @@ namespace SF2
       public:
         uint16_t major;
         uint16_t minor;
+      String ToString()
+      {
+        String str;
+        str.append(major);
+        str.append(".");
+        if (minor < 10) str.append("0");
+        str.append(minor);
+        return str;
+      }
     };
 
     class INFO
@@ -46,6 +55,26 @@ namespace SF2
         String ICMT;
         /** The tool used to create or edit the SoundFont */
         String ISFT;
+
+        String ToString()
+        {
+            String ret = "\n";
+            ret += "*** Info *** ( size: ";
+            ret.append(size);
+            ret += " )\n";
+            ret += "Soundfont version: " + ifil.ToString() + "\n";
+            ret += "Name: " + INAM + "\n";
+            ret += "SoundEngine: " + isng + "\n";
+            ret += "ROM: " + irom + "\n";
+            ret += "ROM ver: " + iver.ToString() + "\n";
+            ret += "Date: " + ICRD + "\n";
+            ret += "Credits: " + IENG + "\n";
+            ret += "Product: " + IPRD + "\n";
+            ret += "Copyright: " + ICOP + "\n";
+            ret += "Comment: " + ICMT + "\n";
+            ret += "Tools: " + ISFT + "\n";
+            return ret;
+        }
     };
 
     class smpl_rec
