@@ -5,6 +5,7 @@
  * note. it's only SFGenerator, SFSampleLink & SFSampleMode
  * that is currently used for the reader
 */
+#pragma once
 
 namespace SF2
 {

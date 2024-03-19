@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include "enums.h"
 
+#pragma once
+
 namespace SF2
 {
     
@@ -71,9 +73,9 @@ namespace SF2
         uint16_t wPreset;
         uint16_t wBank;
         uint16_t wPresetBagNdx;
-        int16_t dwLibrary;
-        int16_t dwGenre;
-        int16_t dwMorphology;
+        uint32_t dwLibrary;
+        uint32_t dwGenre;
+        uint32_t dwMorphology;
     };
 
     /**
@@ -113,6 +115,7 @@ namespace SF2
         int16_t     modAmount;
         SFModulator sfModAmtSrcOper;
         SFTransform sfModTransOper;
+        uint8_t     padding; // to get right size when using sizeof
     };
 
     struct SF2GeneratorAmount
@@ -151,11 +154,11 @@ namespace SF2
     {
       public:
         char achSampleName[20];
-        int16_t dwStart;
-        int16_t dwEnd;
-        int16_t dwStartloop;
-        int16_t dwEndloop;
-        int16_t dwSampleRate;
+        uint32_t dwStart;
+        uint32_t dwEnd;
+        uint32_t dwStartloop;
+        uint32_t dwEndloop;
+        uint32_t dwSampleRate;
         uint8_t byOriginalKey;
         int8_t chCorrection;
         uint16_t wSampleLink;
