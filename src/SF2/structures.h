@@ -61,7 +61,7 @@ namespace SF2
             String ret = "\n";
             ret += "*** Info *** ( size: ";
             ret.append(size);
-            ret += " )\n";
+            ret += " )\n\n";
             ret += "Soundfont version: " + ifil.ToString() + "\n";
             ret += "Name: " + INAM + "\n";
             ret += "SoundEngine: " + isng + "\n";
@@ -81,7 +81,7 @@ namespace SF2
     {
       public:
         /** smpl data offset as from the beginning of the file */
-        uint32_t position;
+        uint64_t position;
         /** smpl data size */
         uint32_t size;
     };
@@ -97,7 +97,7 @@ namespace SF2
     class phdr_rec
     {
       public:
-        uint32_t size; // comes from parent LIST
+      static const uint32_t Size = 38;
         char achPresetName[20];
         uint16_t wPreset;
         uint16_t wBank;
@@ -113,6 +113,7 @@ namespace SF2
     class bag_rec
     {
       public:
+      static const uint32_t Size = 4;
         uint16_t wGenNdx;
         uint16_t wModNdx;
     };
@@ -139,6 +140,7 @@ namespace SF2
     class mod_rec
     {
       public:
+      static const uint32_t Size = 10;
         SFModulator sfModSrcOper;
         SFGenerator sfModDestOper;
         int16_t     modAmount;
@@ -168,6 +170,7 @@ namespace SF2
     class gen_rec
     {
       public:
+      static const uint32_t Size = 4;
         SFGenerator sfGenOper;
         SF2GeneratorAmount genAmount;
     };
@@ -175,6 +178,7 @@ namespace SF2
     class inst_rec
     {
       public:
+      static const uint32_t Size = 22;
         char achInstName[20];
         uint16_t wInstBagNdx;
     };
@@ -182,6 +186,7 @@ namespace SF2
     class shdr_rec
     {
       public:
+      static const uint32_t Size = 46;
         char achSampleName[20];
         uint32_t dwStart;
         uint32_t dwEnd;
@@ -200,22 +205,31 @@ namespace SF2
         uint32_t size; // comes from parent LIST
         /** The Preset Headers */
         phdr_rec *phdr;
+        uint32_t phdr_count = 0;
         /** The Preset Index list */
         bag_rec *pbag;
+        uint32_t pbag_count = 0;
         /** The Preset Modulator list */
         mod_rec *pmod;
+        uint32_t pmod_count = 0;
         /** The Preset Generator list */
         gen_rec *pgen;
+        uint32_t pgen_count = 0;
         /** The Instrument Names and Indices */
         inst_rec *inst;
+        uint32_t inst_count = 0;
         /** The Instrument Index list */
         bag_rec *ibag;
+        uint32_t ibag_count = 0;
         /** The Instrument Modulator list */
         mod_rec *imod;
+        uint32_t imod_count = 0;
         /** The Instrument Generator list */
         gen_rec *igen;
+        uint32_t igen_count = 0;
         /** The Sample Headers */
         shdr_rec *shdr;
+        uint32_t shdr_count = 0;
         pdta_rec()
         {
             phdr = new phdr_rec[0];
@@ -243,7 +257,7 @@ namespace SF2
     {
       public:
         /** whole file size */
-        long size = 0;
+        uint32_t size = 0;
         sfbk_rec sfbk;
     };
 }

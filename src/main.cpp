@@ -9,6 +9,9 @@
 #include "SF2/reader.h"
 
 #include <ArduinoJson.h>
+
+#define USerial SerialUSB1
+
 // Define the maximum size of the JSON input
 const int JSON_BUFFER_SIZE = 256;
 bool cardInitialized = false;
@@ -19,11 +22,11 @@ void processSerialCommand();
 void setup()
 {
 	//Serial.begin(115200);
-    SerialUSB1.begin(115200);
+    USerial.begin(115200);
     //Serial1.begin(115200);
     //Serial2.begin(115200);
     if (!SD.begin(BUILTIN_SDCARD)) {
-        SerialUSB1.println("SD initialization failed!");
+        USerial.println("SD initialization failed!");
     }
     else
     {
@@ -44,20 +47,25 @@ void loop()
 
 void processSerialCommand()
 {
-    if (SerialUSB1.available() > 0) {
+    if (USerial.available() > 0) {
         // Read the incoming bytes into a buffer until a newline character is received
         char jsonBuffer[JSON_BUFFER_SIZE];
-        int bytesRead = SerialUSB1.readBytesUntil('\n', jsonBuffer, JSON_BUFFER_SIZE - 1);
+        int bytesRead = USerial.readBytesUntil('\n', jsonBuffer, JSON_BUFFER_SIZE - 1);
         jsonBuffer[bytesRead] = '\0'; // Null-terminate the string
-
+        if (strncmp(jsonBuffer, "json:", 5) != 0)
+        {
+            if (strncmp(jsonBuffer, "ping", 4) == 0)
+                USerial.println("pong");
+            return;
+        }
         // Parse the JSON string
         StaticJsonDocument<JSON_BUFFER_SIZE> doc;
-        DeserializationError error = deserializeJson(doc, jsonBuffer);
+        DeserializationError error = deserializeJson(doc, jsonBuffer+5);
 
         // Check if parsing was successful
         if (error) {
-        SerialUSB1.print("error - parsing json failed: ");
-        SerialUSB1.println(error.c_str());
+        USerial.print("error - parsing json failed: ");
+        USerial.println(error.c_str());
         return;
         }
 
@@ -80,19 +88,33 @@ void processSerialCommand()
             String filePath = doc["path"];
             if (SF2::ReadFile(filePath) == false)
             {
-                SerialUSB1.print(SF2::lastError);
-                SerialUSB1.print(" @ position: ");
-                SerialUSB1.println(SF2::lastErrorPosition);
+                USerial.print(SF2::lastError);
+                USerial.print(" @ position: ");
+                USerial.println(SF2::lastErrorPosition);
             }
             //else
             {
-                SerialUSB1.printf("\ninfo - file size: %ld, sfbk size: %ld\n", SF2::sfFile.size, SF2::sfFile.sfbk.size);
-                SerialUSB1.println(SF2::sfFile.sfbk.info.ToString());
+                USerial.printf("\ninfo - file size: %ld, sfbk size: %ld\n", SF2::sfFile.size, SF2::sfFile.sfbk.size);
+                USerial.println(SF2::sfFile.sfbk.info.ToString());
             }
+        }
+        else if (strcmp(command, "list_instruments") == 0)
+        {
+            USerial.printf("Instrument count: %ld\n\n", SF2::sfFile.sfbk.pdta.inst_count);
+
+            for (uint32_t i = 0; i < SF2::sfFile.sfbk.pdta.inst_count; i++)
+            {
+                SF2::printRawBytes(SF2::sfFile.sfbk.pdta.inst[i].achInstName, 20);
+                USerial.println("\n");
+            }
+        }
+        else if (strcmp(command, "ping") == 0)
+        {
+            USerial.println("pong");
         }
         else
         {
-            SerialUSB1.print("info - command not found:'"); SerialUSB1.println(command);
+            USerial.print("info - command not found:'"); USerial.println(command);
         }
     }
 }
@@ -100,17 +122,17 @@ void processSerialCommand()
 void listFiles(const char *dirname) {
     File root = SD.open(dirname, FILE_READ);
     if (!root) {
-        SerialUSB1.println("warning - cannot open directory");
-        SerialUSB1.println(dirname);
+        USerial.println("warning - cannot open directory");
+        USerial.println(dirname);
         return;
     }
     if (!root.isDirectory()) {
-        SerialUSB1.println("warning - Not a directory");
+        USerial.println("warning - Not a directory");
         return;
     }
 
-    //SerialUSB1.println("Files found in root directory:");
-    SerialUSB1.print("json:{'files':[");
+    //DSerial.println("Files found in root directory:");
+    USerial.print("json:{'files':[");
 
     while (true) {
         File entry = root.openNextFile(FILE_READ);
@@ -118,17 +140,17 @@ void listFiles(const char *dirname) {
         // no more files
         break;
         }
-        SerialUSB1.print("{'name':'");
-        SerialUSB1.print(entry.name());
-        SerialUSB1.print("','size':");
+        USerial.print("{'name':'");
+        USerial.print(entry.name());
+        USerial.print("','size':");
         if (entry.isDirectory() == false)
-            SerialUSB1.print(entry.size());
+            USerial.print(entry.size());
         else
-            SerialUSB1.print(-1); // size -1 mean directory
-        SerialUSB1.print("},");
+            USerial.print(-1); // size -1 mean directory
+        USerial.print("},");
         entry.close();
     }
-    SerialUSB1.print("]}\n");
+    USerial.print("]}\n");
     root.close();
 }
 
