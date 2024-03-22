@@ -90,7 +90,11 @@ void processSerialCommand()
             {
                 USerial.print(SF2::lastError);
                 USerial.print(" @ position: ");
-                USerial.println(SF2::lastErrorPosition);
+                USerial.print(SF2::lastErrorPosition);
+                USerial.print(", lastReadCount: ");
+                USerial.println(SF2::lastReadCount);
+                // TODO. open and print a part of file contents if possible
+                // using lastReadCount and position plus reading some bytes extra backwards
             }
             //else
             {
