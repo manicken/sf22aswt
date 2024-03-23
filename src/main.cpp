@@ -98,7 +98,7 @@ void processSerialCommand()
             }
             //else
             {
-                USerial.printf("\ninfo - file size: %ld, sfbk size: %ld\n", SF2::sfFile.size, SF2::sfFile.sfbk.size);
+                USerial.printf("\ninfo - file size: %u, sfbk size: %u, info size: %u", SF2::sfFile.size, SF2::sfFile.sfbk.size, SF2::sfFile.sfbk.info.size); USerial.print(", sdta size:"); USerial.print(SF2::sfFile.sfbk.sdta.size); USerial.print(", pdta size: "); USerial.println(SF2::sfFile.sfbk.pdta.size);
                 USerial.println(SF2::sfFile.sfbk.info.ToString());
             }
         }

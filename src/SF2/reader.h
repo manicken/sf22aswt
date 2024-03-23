@@ -89,7 +89,7 @@ namespace SF2
             if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading listType")
-            USerial.print(">>>"); printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            USerial.print(">>>"); printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.println(listSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid listType")
             
             
