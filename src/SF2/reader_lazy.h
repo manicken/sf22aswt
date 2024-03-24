@@ -58,7 +58,7 @@ namespace SF2::lazy_reader
             if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading listType")
-            USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.println(listSize);
+            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.println(listSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid listType")
             
             
@@ -66,7 +66,7 @@ namespace SF2::lazy_reader
             {
                 sfbk->info_position = file.position();
                 sfbk->info_size = listSize;
-                if (file.seek(file.position() + listSize - 4) == false) FILE_ERROR("seek error - while skipping INFO block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR("seek error - while skipping INFO block")
                 
                 //file.close(); return true; // early return debug test
             }
@@ -85,7 +85,7 @@ namespace SF2::lazy_reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(file.position() + listSize - 4) == false) FILE_ERROR("seek error - while skipping unknown sfbk root block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sfbk root block")
             }
         }
 
@@ -107,7 +107,7 @@ namespace SF2::lazy_reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting infoblock type")
-            USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - infoblock type invalid")
             
             if (strncmp(fourCC, "smpl", 4) == 0)
@@ -115,18 +115,18 @@ namespace SF2::lazy_reader
                 if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR("read error - while reading smpl size")
                 sfbk->sdta.smpl.position = file.position();
                 // skip sample data
-                if (file.seek( file.position() + sfbk->sdta.smpl.size) == false) FILE_ERROR("seek error - while skipping smpl data")
+                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR("seek error - while skipping smpl data")
             }
             else if (strncmp(fourCC, "sm24", 4) == 0)
             {
                 if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR("read error - while reading sm24 size")
                 sfbk->sdta.sm24.position = file.position();
                 // skip sample data
-                if (file.seek( file.position() + sfbk->sdta.sm24.size) == false) FILE_ERROR("seek error - while skipping sm24 data")
+                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR("seek error - while skipping sm24 data")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
-                file.seek(file.position() - 4); // skip back
+                file.seek(-4, SeekCur); // skip back
                 return true;
             }
             else
@@ -134,7 +134,7 @@ namespace SF2::lazy_reader
                 // normally unknown blocks should be ignored
                 uint32_t size = 0;
                 if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting unknown sdta block size")
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping unknown sdta block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sdta block")
             }
         }
         return true;
@@ -147,7 +147,7 @@ namespace SF2::lazy_reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting pdta block type")
-            USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - pdta type invalid")
 
             if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting pdta block size")
@@ -158,7 +158,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.phdr_count = size/phdr_rec::Size;
                 sfbk->pdta.phdr_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping phdr block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping phdr block")
             }
             else if (strncmp(fourCC, "pbag", 4) == 0)
             {
@@ -166,7 +166,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pbag_count = size/bag_rec::Size;
                 sfbk->pdta.pbag_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pbag block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pbag block")
             }
             else if (strncmp(fourCC, "pmod", 4) == 0)
             {
@@ -174,7 +174,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pmod_count = size/mod_rec::Size;
                 sfbk->pdta.pmod_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pmod block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pmod block")
             }
             else if (strncmp(fourCC, "pgen", 4) == 0)
             {
@@ -182,7 +182,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pgen_count = size/gen_rec::Size;
                 sfbk->pdta.pgen_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pgen block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pgen block")
             }
             else if (strncmp(fourCC, "inst", 4) == 0)
             {
@@ -190,7 +190,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.inst_count = size/inst_rec::Size;
                 sfbk->pdta.inst_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping inst block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping inst block")
             }
             else if (strncmp(fourCC, "ibag", 4) == 0)
             {
@@ -198,7 +198,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.ibag_count = size/bag_rec::Size;
                 sfbk->pdta.ibag_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping ibag block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping ibag block")
             }
             else if (strncmp(fourCC, "imod", 4) == 0)
             {
@@ -206,7 +206,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.imod_count = size/mod_rec::Size;
                 sfbk->pdta.imod_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping imod block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping imod block")
             }
             else if (strncmp(fourCC, "igen", 4) == 0)
             {
@@ -214,7 +214,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.igen_count = size/gen_rec::Size;
                 sfbk->pdta.igen_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping igen block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping igen block")
             }
             else if (strncmp(fourCC, "shdr", 4) == 0)
             {
@@ -222,17 +222,17 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.shdr_count = size/shdr_rec::Size;
                 sfbk->pdta.shdr_position = file.position();
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping shdr block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping shdr block")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
-                file.seek(file.position() - 4); // skip back
+                file.seek(-4, SeekCur); // skip back
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
             }
         }
         return true;

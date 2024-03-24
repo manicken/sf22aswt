@@ -76,7 +76,7 @@ namespace SF2::reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(file.position() + listSize - 4) == false) FILE_ERROR("seek error - while skipping unknown sfbk root block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sfbk root block")
             }
         }
         SF2::filePath = filePath;
@@ -106,18 +106,18 @@ namespace SF2::reader
                 if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR("read error - while reading smpl size")
                 sfbk->sdta.smpl.position = file.position();
                 // skip sample data
-                if (file.seek( file.position() + sfbk->sdta.smpl.size) == false) FILE_ERROR("seek error - while skipping smpl data")
+                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR("seek error - while skipping smpl data")
             }
             else if (strncmp(fourCC, "sm24", 4) == 0)
             {
                 if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR("read error - while reading sm24 size")
                 sfbk->sdta.sm24.position = file.position();
                 // skip sample data
-                if (file.seek( file.position() + sfbk->sdta.sm24.size) == false) FILE_ERROR("seek error - while skipping sm24 data")
+                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR("seek error - while skipping sm24 data")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
-                file.seek(file.position() - 4); // skip back
+                file.seek(-4, SeekCur); // skip back
                 return true;
             }
             else
@@ -125,7 +125,7 @@ namespace SF2::reader
                 // normally unknown blocks should be ignored
                 uint32_t size = 0;
                 if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting unknown sdta block size")
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping unknown sdta block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sdta block")
             }
         }
         return true;
@@ -235,13 +235,13 @@ namespace SF2::reader
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
-                file.seek(file.position() - 4); // skip back
+                file.seek(-4, SeekCur); // skip back
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
             }
         }
         return true;

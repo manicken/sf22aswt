@@ -18,4 +18,19 @@ namespace Helpers
                 USerial.write(bytes[i]);
         }
     }
+    void printRawBytesUntil(const char* bytes, size_t length, char untilchar)
+    {
+        for (size_t i=0;i<length;i++)
+        {
+            if (bytes[i] == untilchar) return;
+            if (bytes[i] < 32 || bytes[i] > 126)
+            {
+                USerial.print("[");
+                USerial.print(bytes[i],HEX);
+                USerial.print("]");
+            }
+            else
+                USerial.write(bytes[i]);
+        }
+    }
 }

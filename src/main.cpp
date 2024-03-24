@@ -126,22 +126,25 @@ void processSerialCommand()
         {
             if (SF2reader::lastReadWasOK == false) { USerial.println("file not open or last read was not ok"); return; }
 
-            USerial.printf("Instrument count: %ld\n\n", SF2reader::sfbk->pdta.inst_count);
+            USerial.print("json:{\"instruments\":[");//, SF2reader::sfbk->pdta.inst_count);
             File file = SD.open(SF2::filePath.c_str());
             file.seek(SF2reader::sfbk->pdta.inst_position);
-            char name[20];
-            uint16_t ibagNdx = 0;
-            for (uint32_t i = 0; i < SF2reader::sfbk->pdta.inst_count; i++)
+            SF2::inst_rec inst;
+            
+            for (uint32_t i = 0; i < SF2reader::sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
             {
-                file.readBytes(name, 20);
-                file.read(&ibagNdx, 2);
+                
+                file.read(&inst, 22);
+                //file.read(&inst.wInstBagNdx, 2);
                 //Helpers::printRawBytes(SF2reader::sfbk->pdta.inst[i].achInstName, 20);
-                Helpers::printRawBytes(name, 20);
-                USerial.print(", ibagNdx: ");
-                USerial.print(ibagNdx);
-                USerial.println("\n");
+                USerial.print("{\"name\":\"");
+                Helpers::printRawBytesUntil(inst.achInstName, 20, '\0');
+                USerial.print("\",\"ndx\":");
+                USerial.print(inst.wInstBagNdx);
+                USerial.print("},");
             }
             file.close();
+            USerial.print("]}\n");
         }
         else if (strcmp(command, "ping") == 0)
         {
