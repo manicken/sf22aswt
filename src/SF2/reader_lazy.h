@@ -237,4 +237,173 @@ namespace SF2::lazy_reader
         }
         return true;
     }
+
+    bool get_gen_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
+    {
+        uint16_t sampleGenCount = bags[sampleIndex+1].count;
+        for (int i=0;i<sampleGenCount;i++)
+        {
+            if (bags[sampleIndex+1].items[i].sfGenOper == genType) {
+                *amount = bags[sampleIndex+1].items[i].genAmount;
+                return true;
+            }
+        }
+        
+        // try again with global bag
+        uint16_t globalGenCount = bags[sampleIndex+1].count;
+        for (int i = 0; i < globalGenCount; i++)
+        {
+            if (bags[0].items[i].sfGenOper == genType) {
+                *amount = bags[0].items[i].genAmount;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    double get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN, double MAX)
+    {
+        SF2GeneratorAmount genval;
+        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.centibels(): DEFAULT;
+        return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
+    }
+    double get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN)
+    {
+        SF2GeneratorAmount genval;
+        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.cents()*1000.0f: DEFAULT;
+        return (val > MIN) ? val : MIN;
+    }
+    double get_hertz(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN, double MAX)
+    {
+        SF2GeneratorAmount genval;
+        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.absolute_cents(): DEFAULT;
+        return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
+    }
+    int get_pitch_cents(bag_of_gens* bags, int sampleIndex, SFGenerator genType, int DEFAULT, int MIN, int MAX)
+    {
+        SF2GeneratorAmount genval;
+        int val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.Amount: DEFAULT;
+        return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
+    }
+    int get_cooked_loop_start(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    {
+        int result = (int)(shdr.dwStartloop - shdr.dwStart);
+        SF2GeneratorAmount genval;
+        result += get_gen_parameter_value(bags, sampleIndex, SFGenerator::startloopAddrsOffset, &genval)?genval.Amount:0;
+        result += get_gen_parameter_value(bags, sampleIndex, SFGenerator::startloopAddrsCoarseOffset, &genval)?genval.coarse_offset():0;
+        return result;
+    }
+    int get_cooked_loop_end(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    {
+        int result = (int)(shdr.dwEndloop - shdr.dwStart);
+        SF2GeneratorAmount genval;
+        result += get_gen_parameter_value(bags, sampleIndex, SFGenerator::endloopAddrsOffset, &genval)?genval.Amount:0;
+        result += get_gen_parameter_value(bags, sampleIndex, SFGenerator::endloopAddrsCoarseOffset, &genval)?genval.coarse_offset():0;
+        return result;
+    }
+    int get_sample_note(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    {
+        SF2GeneratorAmount genval;
+        return get_gen_parameter_value(bags, sampleIndex, SFGenerator::overridingRootKey, &genval)?genval.UAmount:((shdr.byOriginalKey <= 127)?shdr.byOriginalKey:60);
+    }
+    int get_fine_tuning(bag_of_gens* bags, int sampleIndex)
+    {
+        SF2GeneratorAmount genval;
+        return get_gen_parameter_value(bags, sampleIndex, SFGenerator::overridingRootKey, &genval)?genval.Amount:0;
+    }
+    bool get_sample_header(File &file, bag_of_gens* bags, int sampleIndex, shdr_rec *shdr)
+    {
+        SF2GeneratorAmount genval;
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleID, &genval) == false) return false;
+        if (file.seek(sfbk->pdta.shdr_position + genval.UAmount*shdr_rec::Size) == false) return false;
+        if (file.read(&shdr, shdr_rec::Size) != shdr_rec::Size) return false;
+        return true;
+    }
+    bool get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
+    {
+        SF2GeneratorAmount genVal;
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false) return defaultValue;
+        
+        return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
+    }
+    int get_length(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    {
+        int length = (int)(shdr.dwEnd - shdr.dwStart);
+        int cooked_loop_end = get_cooked_loop_end(bags, sampleIndex, shdr);
+        if (get_sample_repeat(bags, sampleIndex, false) && cooked_loop_end < length)
+        {
+            return cooked_loop_end + 1;
+        }
+        return length;
+    }
+    int get_length_bits(int len)
+    {
+        int length_bits = 0;
+        while (len != 0)
+        {
+            length_bits += 1;
+            len = len >> 1;
+        }
+        return length_bits;
+    }
+
+    bool load_instrument(uint index, instrument_data &inst)
+    {
+        if (index > sfbk->pdta.inst_count - 1) return false;
+
+        File file = SD.open(SF2::filePath.c_str());
+        file.seek(sfbk->pdta.inst_position + inst_rec::Size*index + 20);
+        uint16_t ibag_startIndex = 0;
+        uint16_t ibag_endIndex = 0;
+        file.read(&ibag_startIndex, 2);
+        file.seek(20, SeekCur);
+        file.read(&ibag_endIndex, 2);
+        uint16_t ibag_count = ibag_endIndex - ibag_startIndex; 
+        uint16_t igen_ndxs[ibag_count+1]; // +1 because of the soundfont structure 
+        uint16_t dummy = 0;
+        USerial.print("ibag_start index: "); USerial.print(ibag_startIndex);
+        USerial.print(", ibag_end index: "); USerial.println(ibag_endIndex);
+        USerial.println(" ");
+        file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex);
+        for (int i=0;i<ibag_count+1;i++)
+        {
+            file.read(&igen_ndxs[i], 2);
+            file.read(&dummy, 2); // imod not used
+            USerial.print(igen_ndxs[i]);
+            USerial.print(", ");
+        }
+        // store gen data in bags for faster access
+        bag_of_gens bags[ibag_count];
+        for (int i=0;i<ibag_count;i++)
+        {
+            uint16_t start = igen_ndxs[i];
+            uint16_t end = igen_ndxs[i+1];
+            uint16_t count = end-start;
+            bags[i].items = new gen_rec[count];
+            bags[i].count = count;
+            file.seek(sfbk->pdta.igen_position + start*gen_rec::Size);
+            for (int i2=0;i2<count;i2++)
+            {
+                file.read(&bags[i].items[i2], gen_rec::Size);
+            }
+        }
+
+        inst.sample_count = ibag_count - 1;
+        inst.samples = new sample_data[ibag_count - 1];
+        for (int i=0;i<inst.sample_count;i++)
+        {
+            shdr_rec shdr;
+            if (get_sample_header(file, bags, i, &shdr) == false) continue;
+            
+        }
+
+        // Deallocate memory for bags_of_gens
+        for (int i = 0; i < ibag_count; i++) {
+            delete[] bags[i].items; // Deallocate memory for the array of pointers
+        }
+        delete[] bags;
+
+        file.close();
+        return true;
+    }
 }

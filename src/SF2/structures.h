@@ -15,6 +15,49 @@
 namespace SF2
 {
 
+    struct sample_data {
+        // SAMPLE VALUES
+        uint32_t sample_start; // used to get final sample data from file
+        uint32_t sample_lenght;// used to get final sample data from file
+        bool LOOP;
+        int INDEX_BITS;
+        float PER_HERTZ_PHASE_INCREMENT;
+        uint32_t MAX_PHASE;
+        uint32_t LOOP_PHASE_END;
+        uint32_t LOOP_PHASE_LENGTH;
+        uint16_t INITIAL_ATTENUATION_SCALAR;
+
+        // VOLUME ENVELOPE VALUES
+        uint32_t DELAY_COUNT;
+        uint32_t ATTACK_COUNT;
+        uint32_t HOLD_COUNT;
+        uint32_t DECAY_COUNT;
+        uint32_t RELEASE_COUNT;
+        int32_t SUSTAIN_MULT;
+
+        // VIRBRATO VALUES
+        uint32_t VIBRATO_DELAY;
+        uint32_t VIBRATO_INCREMENT;
+        float VIBRATO_PITCH_COEFFICIENT_INITIAL;
+        float VIBRATO_PITCH_COEFFICIENT_SECOND;
+
+        // MODULATION VALUES
+        uint32_t MODULATION_DELAY;
+        uint32_t MODULATION_INCREMENT;
+        float MODULATION_PITCH_COEFFICIENT_INITIAL;
+        float MODULATION_PITCH_COEFFICIENT_SECOND;
+        int32_t MODULATION_AMPLITUDE_INITIAL_GAIN;
+        int32_t MODULATION_AMPLITUDE_SECOND_GAIN;
+    };
+    struct instrument_data {
+      
+        uint8_t sample_count;
+        uint8_t* sample_note_ranges;
+        sample_data* samples;
+    };
+
+  
+
     class sfVersionTag
     {
       public:
@@ -170,6 +213,40 @@ namespace SF2
             int16_t Amount;            
         };
         
+        double cents()
+        {
+          return std::pow(2, static_cast<double>(Amount) / 1200.0);
+        }
+        double bells()
+        {
+          return static_cast<double>(Amount) / 100.0;
+        }
+        double centibels()
+        {
+          return static_cast<double>(Amount) / 10.0;
+        }
+        int coarse_offset()
+        {
+          return 32768 * Amount;
+        }
+        double absolute_cents()
+        {
+            return 8.176 * std::pow(2, static_cast<double>(Amount) / 1200.0);
+        }
+        SFSampleMode sample_mode()
+        {
+            return ((SFSampleMode)UAmount);
+        }
+        uint8_t rangeLow()
+        {
+          if (LowByte < HighByte) return LowByte;
+          else return HighByte;
+        }
+        uint8_t rangeHigh()
+        {
+          if (LowByte < HighByte) return HighByte;
+          else return LowByte;
+        }
     };
 
     /**
@@ -181,6 +258,13 @@ namespace SF2
       static const uint32_t Size = 4;
         SFGenerator sfGenOper;
         SF2GeneratorAmount genAmount;
+    };
+
+    class bag_of_gens
+    {
+      public:
+        uint16_t count = 0;
+        gen_rec* items;
     };
 
     class inst_rec

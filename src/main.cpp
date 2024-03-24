@@ -83,6 +83,7 @@ void processSerialCommand()
 
         if (strcmp(command, "list_files") == 0)
         {
+            long startTime = micros();
             if (doc.containsKey("dir")) {
                 const char* dir = doc["dir"];
                 listFiles(dir);
@@ -91,9 +92,16 @@ void processSerialCommand()
             {
                 listFiles("/");
             }
+            long endTime = micros();
+            USerial.print("list files took: ");
+            USerial.print(endTime-startTime);
+            USerial.println(" microseconds");
         }
         else if (strcmp(command, "read_file") == 0)
         {
+            long startTime = micros();
+            if (doc.containsKey("path") == false) { USerial.println("read_file path parameter missing"); return; }
+
             String filePath = doc["path"];
             if (SF2reader::ReadFile(filePath) == false)
             {
@@ -121,9 +129,14 @@ void processSerialCommand()
                 file.close();
                 USerial.println(info.ToString());
             }
+            long endTime = micros();
+            USerial.print("open file took: ");
+            USerial.print(endTime-startTime);
+            USerial.println(" microseconds");
         }
         else if (strcmp(command, "list_instruments") == 0)
         {
+            long startTime = micros();
             if (SF2reader::lastReadWasOK == false) { USerial.println("file not open or last read was not ok"); return; }
 
             USerial.print("json:{\"instruments\":[");//, SF2reader::sfbk->pdta.inst_count);
@@ -145,6 +158,24 @@ void processSerialCommand()
             }
             file.close();
             USerial.print("]}\n");
+            long endTime = micros();
+            USerial.print("list instruments took: ");
+            USerial.print(endTime-startTime);
+            USerial.println(" microseconds");
+        }
+        else if (strcmp(command, "load_instrument") == 0)
+        {
+            long startTime = micros();
+            if (doc.containsKey("index") == false) {USerial.println("load_instrument index parameter missing");}
+            int index = doc["index"];
+            SF2::instrument_data inst = {0,0,nullptr};
+            
+            SF2reader::load_instrument(index, inst);
+            USerial.print("sample count: "); USerial.println(inst.sample_count);
+            long endTime = micros();
+            USerial.print("load instrument took: ");
+            USerial.print(endTime-startTime);
+            USerial.println(" microseconds");
         }
         else if (strcmp(command, "ping") == 0)
         {

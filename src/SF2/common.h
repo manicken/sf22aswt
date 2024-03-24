@@ -48,7 +48,7 @@ namespace SF2
             //DSerial.printf("\n  file position: %ld\n", file.position());
             
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting infoblock type")
-            USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - infoblock type invalid")
 
             uint32_t dummy = 0;
