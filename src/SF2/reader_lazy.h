@@ -8,10 +8,12 @@
 
 #define USerial SerialUSB1
 
-namespace SF2::reader
+namespace SF2::lazy_reader
 {
-    sfbk_rec *sfbk;
+    sfbk_rec_lazy *sfbk;
     uint32_t fileSize;
+
+    bool lastReadWasOK = false;
 
     String lastError; // TODO: change string lastError into a enum
     uint64_t lastErrorPosition;
@@ -38,14 +40,19 @@ namespace SF2::reader
             if (fourCC[i] < 32 || fourCC[i] > 126) return false;
         return true;
     }
-  
-    bool readInfoBlock(File &file, INFO &info);
+
     bool read_sdta_block(File &file);
     bool read_pdta_block(File &br);
     
+    /** reads and verifies the sf2 file,
+     *  note. this is lazy read 
+     *  and only the file positions for
+     *  all important blocks are stored into ram
+     */
     bool ReadFile(String filePath)
     {
-        if (sfbk == nullptr) sfbk = new sfbk_rec();
+        lastReadWasOK = false;
+        if (sfbk == nullptr) sfbk = new sfbk_rec_lazy();
 
         File file = SD.open(filePath.c_str());
         if (!file) {  lastError = "warning - cannot open file " + filePath; return false; }
@@ -84,8 +91,9 @@ namespace SF2::reader
             
             if (strncmp(fourCC, "INFO", 4) == 0)
             {
-                sfbk->info.size = listSize;
-                if (readInfoBlock(file, sfbk->info) == false) return false;
+                sfbk->info_position = file.position();
+                if (file.seek(file.position() + listSize - 4) == false) FILE_ERROR("seek error - while skipping INFO block")
+                
                 //file.close(); return true; // early return debug test
             }
             else if (strncmp(fourCC, "sdta", 4) == 0)
@@ -108,80 +116,7 @@ namespace SF2::reader
         }
 
         file.close();
-        return true;
-    }
-
-    bool readInfoBlock(File &file, INFO &info)
-    {
-        //SerialUSB1.print("\navailable >>>"); SerialUSB1.println(file.available()); SerialUSB1.print("<<<\n");
-        char fourCC[4];
-        while (file.available() > 0)
-        {
-            //DSerial.printf("\n  file position: %ld\n", file.position());
-            
-            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting infoblock type")
-            USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
-            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - infoblock type invalid")
-
-            uint32_t dummy = 0;
-            if (strncmp(fourCC, "ifil", 4) == 0)
-            {
-                if ((lastReadCount = file.read(&dummy, 4)) != 4) FILE_ERROR("read error - ifil size dummy read")
-                if ((lastReadCount = file.read(&info.ifil, 4)) != 4) FILE_ERROR("read error - while ifil read")
-            }
-            else if (strncmp(fourCC, "isng", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.isng) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "INAM", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.INAM) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "irom", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.irom) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "iver", 4) == 0)
-            {
-                if ((lastReadCount = file.read(&dummy, 4)) != 4) FILE_ERROR("read error - iver size dummy read")
-                if ((lastReadCount = file.read(&info.iver, 4)) != 4) FILE_ERROR("read error - while iver read")
-            }
-            else if (strncmp(fourCC, "ICRD", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.ICRD) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "IENG", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.IENG) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "IPRD", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.IPRD) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "ICOP", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.ICOP) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "ICMT", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.ICMT) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "ISFT", 4) == 0)
-            {
-                if (ReadStringUsingLeadingSize(file, info.ISFT) == false) return false; // ReadStringUsingLeadingSize takes care of the error report
-            }
-            else if (strncmp(fourCC, "LIST", 4) == 0)
-            {
-                file.seek(file.position() - 4); // skip back
-                return true;
-            }
-            else
-            {
-                // normally unknown blocks should be ignored
-                if ((lastReadCount = file.read(&dummy, 4)) != 4) FILE_ERROR("read error - while getting unknown INFO block size")
-                if (file.seek(file.position() + dummy) == false) FILE_ERROR("seek error - while skipping unknown INFO block")
-            }
-        }
+        lastReadWasOK = true;
         return true;
     }
 
@@ -247,90 +182,72 @@ namespace SF2::reader
                 if (size % phdr_rec::Size != 0) FILE_ERROR("error - pdta phdr block size mismatch")
 
                 sfbk->pdta.phdr_count = size/phdr_rec::Size;
-                sfbk->pdta.phdr = new phdr_rec[sfbk->pdta.phdr_count];
-                for (uint32_t i = 0; i < sfbk->pdta.phdr_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.phdr[i], phdr_rec::Size)) != phdr_rec::Size) FILE_ERROR("read error - while reading pdta phdr record")
-                }
+                sfbk->pdta.phdr_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping phdr block")
             }
             else if (strncmp(fourCC, "pbag", 4) == 0)
             {
                 if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta pbag block size mismatch")
 
                 sfbk->pdta.pbag_count = size/bag_rec::Size;
-                sfbk->pdta.pbag = new bag_rec[sfbk->pdta.pbag_count];
-                for (uint32_t i = 0; i < sfbk->pdta.pbag_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.pbag[i], bag_rec::Size)) != bag_rec::Size) FILE_ERROR("read error - while reading pdta pbag record")
-                }
+                sfbk->pdta.pbag_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pbag block")
             }
             else if (strncmp(fourCC, "pmod", 4) == 0)
             {
                 if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta pmod block size mismatch")
 
                 sfbk->pdta.pmod_count = size/mod_rec::Size;
-                sfbk->pdta.pmod = new mod_rec[sfbk->pdta.pmod_count];
-                for (uint32_t i = 0; i < sfbk->pdta.pmod_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.pmod[i], mod_rec::Size)) != mod_rec::Size) FILE_ERROR("read error - while reading pdta pmod record")
-                }
+                sfbk->pdta.pmod_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pmod block")
             }
             else if (strncmp(fourCC, "pgen", 4) == 0)
             {
                 if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta pgen block size mismatch")
 
                 sfbk->pdta.pgen_count = size/gen_rec::Size;
-                sfbk->pdta.pgen = new gen_rec[sfbk->pdta.pgen_count];
-                for (uint32_t i = 0; i < sfbk->pdta.pgen_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.pgen[i], gen_rec::Size)) != gen_rec::Size) FILE_ERROR("read error - while reading pdta pgen record")
-                }
+                sfbk->pdta.pgen_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping pgen block")
             }
             else if (strncmp(fourCC, "inst", 4) == 0)
             {
                 if (size % inst_rec::Size != 0) FILE_ERROR("error - pdta inst block size mismatch")
 
                 sfbk->pdta.inst_count = size/inst_rec::Size;
-                sfbk->pdta.inst = new inst_rec[sfbk->pdta.inst_count];
-                for (uint32_t i = 0; i < sfbk->pdta.inst_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.inst[i], inst_rec::Size)) != inst_rec::Size) FILE_ERROR("read error - while reading pdta inst record")
-                }
+                sfbk->pdta.inst_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping inst block")
             }
             else if (strncmp(fourCC, "ibag", 4) == 0)
             {
                 if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta ibag block size mismatch")
 
                 sfbk->pdta.ibag_count = size/bag_rec::Size;
-                sfbk->pdta.ibag = new bag_rec[sfbk->pdta.ibag_count];
-                for (uint32_t i = 0; i < sfbk->pdta.ibag_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.ibag[i], bag_rec::Size)) != bag_rec::Size) FILE_ERROR("read error - while reading pdta ibag record")
-                }
+                sfbk->pdta.ibag_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping ibag block")
             }
             else if (strncmp(fourCC, "imod", 4) == 0)
             {
                 if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta imod block size mismatch")
 
                 sfbk->pdta.imod_count = size/mod_rec::Size;
-                sfbk->pdta.imod = new mod_rec[sfbk->pdta.imod_count];
-                for (uint32_t i = 0; i < sfbk->pdta.imod_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.imod[i], mod_rec::Size)) != mod_rec::Size) FILE_ERROR("read error - while reading pdta imod record")
-                }
+                sfbk->pdta.imod_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping imod block")
             }
             else if (strncmp(fourCC, "igen", 4) == 0)
             {
                 if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta igen block size mismatch")
 
                 sfbk->pdta.igen_count = size/gen_rec::Size;
-                sfbk->pdta.igen = new gen_rec[sfbk->pdta.igen_count];
-                for (uint32_t i = 0; i < sfbk->pdta.igen_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.igen[i], gen_rec::Size)) != gen_rec::Size) FILE_ERROR("read error - while reading pdta igen record")
-                }
+                sfbk->pdta.igen_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping igen block")
             }
             else if (strncmp(fourCC, "shdr", 4) == 0)
             {
                 if (size % shdr_rec::Size != 0) FILE_ERROR("error - pdta shdr block size mismatch")
 
                 sfbk->pdta.shdr_count = size/shdr_rec::Size;
-                sfbk->pdta.shdr = new shdr_rec[sfbk->pdta.shdr_count];
-                for (uint32_t i = 0; i < sfbk->pdta.shdr_count; i++) {
-                    if ((lastReadCount = file.read(&sfbk->pdta.shdr[i], shdr_rec::Size)) != shdr_rec::Size) FILE_ERROR("read error - while reading pdta shdr record")
-                }
+                sfbk->pdta.shdr_position = file.position();
+                if (file.seek(file.position() + size) == false) FILE_ERROR("seek error - while skipping shdr block")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {

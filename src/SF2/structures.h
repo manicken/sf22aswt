@@ -1,7 +1,16 @@
+
+#pragma once
+
 #include <Arduino.h>
 #include "enums.h"
 
-#pragma once
+
+/**
+ * lazy in this document means on demand load data,
+ * and all position fields is the start position in the file where the data block begins
+ * size is the block size
+ * */
+
 
 namespace SF2
 {
@@ -86,7 +95,7 @@ namespace SF2
         uint32_t size;
     };
 
-    class sdta_rec
+    class sdta_rec_lazy
     {
       public:
         uint32_t size; // comes from parent LIST
@@ -202,7 +211,7 @@ namespace SF2
     class pdta_rec
     {
       public:
-        uint32_t size; // comes from parent LIST
+        uint32_t size; // comes from parent LIST, used mostly for debug
         /** The Preset Headers */
         phdr_rec *phdr;
         uint32_t phdr_count = 0;
@@ -244,20 +253,59 @@ namespace SF2
         }
     };
 
+    class pdta_rec_lazy
+    {
+      public:
+        uint32_t size; // comes from parent LIST, used mostly for debug
+        /** The Preset Headers */
+        uint32_t phdr_position = 0;
+        uint32_t phdr_count = 0;
+        /** The Preset Index list */
+        uint32_t pbag_position = 0;
+        uint32_t pbag_count = 0;
+        /** The Preset Modulator list */
+        uint32_t pmod_position = 0;
+        uint32_t pmod_count = 0;
+        /** The Preset Generator list */
+        uint32_t pgen_position = 0;
+        uint32_t pgen_count = 0;
+        /** The Instrument Names and Indices */
+        uint32_t inst_position = 0;
+        uint32_t inst_count = 0;
+        /** The Instrument Index list */
+        uint32_t ibag_position = 0;
+        uint32_t ibag_count = 0;
+        /** The Instrument Modulator list */
+        uint32_t imod_position = 0;
+        uint32_t imod_count = 0;
+        /** The Instrument Generator list */
+        uint32_t igen_position = 0;
+        uint32_t igen_count = 0;
+        /** The Sample Headers */
+        uint32_t shdr_position = 0;
+        uint32_t shdr_count = 0;
+
+
+    };
+
+    class sfbk_rec_lazy
+    {
+      public:
+        uint32_t size; // used mostly for debug
+        uint32_t info_position;
+        /** the sample data block (allways a lazy load structure) */
+        sdta_rec_lazy sdta;
+        pdta_rec_lazy pdta;
+    };
+
     class sfbk_rec
     {
       public:
-        uint32_t size;
+        uint32_t size; // used mostly for debug
         INFO info;
-        sdta_rec sdta;
+        /** the sample data block (allways a lazy load structure) */
+        sdta_rec_lazy sdta;
         pdta_rec pdta;
     };
 
-    class RIFF
-    {
-      public:
-        /** whole file size */
-        uint32_t size = 0;
-        sfbk_rec sfbk;
-    };
 }

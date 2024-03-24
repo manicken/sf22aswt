@@ -7,6 +7,7 @@
 #include <MIDI.h>
 #include "ledblinker.h"
 #include "SF2/reader.h"
+#include "SF2/helpers.h"
 
 #include <ArduinoJson.h>
 
@@ -86,29 +87,29 @@ void processSerialCommand()
         else if (strcmp(command, "read_file") == 0)
         {
             String filePath = doc["path"];
-            if (SF2::ReadFile(filePath) == false)
+            if (SF2::reader::ReadFile(filePath) == false)
             {
-                USerial.print(SF2::lastError);
+                USerial.print(SF2::reader::lastError);
                 USerial.print(" @ position: ");
-                USerial.print(SF2::lastErrorPosition);
+                USerial.print(SF2::reader::lastErrorPosition);
                 USerial.print(", lastReadCount: ");
-                USerial.println(SF2::lastReadCount);
+                USerial.println(SF2::reader::lastReadCount);
                 // TODO. open and print a part of file contents if possible
                 // using lastReadCount and position plus reading some bytes extra backwards
             }
             //else
             {
-                USerial.printf("\ninfo - file size: %u, sfbk size: %u, info size: %u", SF2::sfFile.size, SF2::sfFile.sfbk.size, SF2::sfFile.sfbk.info.size); USerial.print(", sdta size:"); USerial.print(SF2::sfFile.sfbk.sdta.size); USerial.print(", pdta size: "); USerial.println(SF2::sfFile.sfbk.pdta.size);
-                USerial.println(SF2::sfFile.sfbk.info.ToString());
+                USerial.printf("\ninfo - file size: %u, sfbk size: %u, info size: %u", SF2::reader::fileSize, SF2::reader::sfbk->size, SF2::reader::sfbk->info.size); USerial.print(", sdta size:"); USerial.print(SF2::reader::sfbk->sdta.size); USerial.print(", pdta size: "); USerial.println(SF2::reader::sfbk->pdta.size);
+                USerial.println(SF2::reader::sfbk->info.ToString());
             }
         }
         else if (strcmp(command, "list_instruments") == 0)
         {
-            USerial.printf("Instrument count: %ld\n\n", SF2::sfFile.sfbk.pdta.inst_count);
+            USerial.printf("Instrument count: %ld\n\n", SF2::reader::sfbk->pdta.inst_count);
 
-            for (uint32_t i = 0; i < SF2::sfFile.sfbk.pdta.inst_count; i++)
+            for (uint32_t i = 0; i < SF2::reader::sfbk->pdta.inst_count; i++)
             {
-                SF2::printRawBytes(SF2::sfFile.sfbk.pdta.inst[i].achInstName, 20);
+                Helpers::printRawBytes(SF2::reader::sfbk->pdta.inst[i].achInstName, 20);
                 USerial.println("\n");
             }
         }
