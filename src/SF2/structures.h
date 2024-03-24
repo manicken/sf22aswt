@@ -14,7 +14,6 @@
 
 namespace SF2
 {
-    
 
     class sfVersionTag
     {
@@ -35,7 +34,7 @@ namespace SF2
     class INFO
     {
       public:
-        uint32_t size; // comes from the parent LIST
+        uint32_t size = 0; // comes from the parent LIST
 
         // mandatory data fields
 
@@ -90,9 +89,9 @@ namespace SF2
     {
       public:
         /** smpl data offset as from the beginning of the file */
-        uint64_t position;
+        uint64_t position = 0;
         /** smpl data size */
-        uint32_t size;
+        uint32_t size = 0;
     };
 
     class sdta_rec_lazy
@@ -211,7 +210,7 @@ namespace SF2
     class pdta_rec
     {
       public:
-        uint32_t size; // comes from parent LIST, used mostly for debug
+        uint32_t size = 0; // comes from parent LIST, used mostly for debug
         /** The Preset Headers */
         phdr_rec *phdr;
         uint32_t phdr_count = 0;
@@ -291,8 +290,9 @@ namespace SF2
     class sfbk_rec_lazy
     {
       public:
-        uint32_t size; // used mostly for debug
-        uint32_t info_position;
+        uint32_t size = 0; // used mostly for debug
+        uint32_t info_position = 0;
+        uint32_t info_size = 0;
         /** the sample data block (allways a lazy load structure) */
         sdta_rec_lazy sdta;
         pdta_rec_lazy pdta;
@@ -301,7 +301,7 @@ namespace SF2
     class sfbk_rec
     {
       public:
-        uint32_t size; // used mostly for debug
+        uint32_t size = 0; // used mostly for debug
         INFO info;
         /** the sample data block (allways a lazy load structure) */
         sdta_rec_lazy sdta;

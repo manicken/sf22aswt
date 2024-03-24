@@ -6,12 +6,20 @@
 #include <SerialFlash.h>
 #include <MIDI.h>
 #include "ledblinker.h"
-#include "SF2/reader.h"
+
+
 #include "SF2/helpers.h"
+#include "SF2/common.h"
 
 #include <ArduinoJson.h>
 
 #define USerial SerialUSB1
+
+//#include "SF2/reader.h"
+//#define SF2reader SF2::reader
+#include "SF2/reader_lazy.h"
+#define SF2reader SF2::lazy_reader
+
 
 // Define the maximum size of the JSON input
 const int JSON_BUFFER_SIZE = 256;
@@ -87,31 +95,53 @@ void processSerialCommand()
         else if (strcmp(command, "read_file") == 0)
         {
             String filePath = doc["path"];
-            if (SF2::reader::ReadFile(filePath) == false)
+            if (SF2reader::ReadFile(filePath) == false)
             {
-                USerial.print(SF2::reader::lastError);
+                USerial.print(SF2::lastError);
                 USerial.print(" @ position: ");
-                USerial.print(SF2::reader::lastErrorPosition);
+                USerial.print(SF2::lastErrorPosition);
                 USerial.print(", lastReadCount: ");
-                USerial.println(SF2::reader::lastReadCount);
+                USerial.println(SF2::lastReadCount);
                 // TODO. open and print a part of file contents if possible
                 // using lastReadCount and position plus reading some bytes extra backwards
             }
             //else
             {
-                USerial.printf("\ninfo - file size: %u, sfbk size: %u, info size: %u", SF2::reader::fileSize, SF2::reader::sfbk->size, SF2::reader::sfbk->info.size); USerial.print(", sdta size:"); USerial.print(SF2::reader::sfbk->sdta.size); USerial.print(", pdta size: "); USerial.println(SF2::reader::sfbk->pdta.size);
-                USerial.println(SF2::reader::sfbk->info.ToString());
+                
+                USerial.print("\n*** info ***\nfile size: "); USerial.print(SF2::fileSize);
+                USerial.print(", sfbk size: "); USerial.print(SF2reader::sfbk->size);
+                USerial.print(", info size: "); USerial.print(SF2reader::sfbk->info_size);
+                USerial.print(", sdta size:"); USerial.print(SF2reader::sfbk->sdta.size);
+                USerial.print(", pdta size: "); USerial.println(SF2reader::sfbk->pdta.size);
+
+                SF2::INFO info;
+                File file = SD.open(SF2::filePath.c_str());
+                file.seek(SF2reader::sfbk->info_position);
+                SF2::readInfoBlock(file, info);
+                file.close();
+                USerial.println(info.ToString());
             }
         }
         else if (strcmp(command, "list_instruments") == 0)
         {
-            USerial.printf("Instrument count: %ld\n\n", SF2::reader::sfbk->pdta.inst_count);
+            if (SF2reader::lastReadWasOK == false) { USerial.println("file not open or last read was not ok"); return; }
 
-            for (uint32_t i = 0; i < SF2::reader::sfbk->pdta.inst_count; i++)
+            USerial.printf("Instrument count: %ld\n\n", SF2reader::sfbk->pdta.inst_count);
+            File file = SD.open(SF2::filePath.c_str());
+            file.seek(SF2reader::sfbk->pdta.inst_position);
+            char name[20];
+            uint16_t ibagNdx = 0;
+            for (uint32_t i = 0; i < SF2reader::sfbk->pdta.inst_count; i++)
             {
-                Helpers::printRawBytes(SF2::reader::sfbk->pdta.inst[i].achInstName, 20);
+                file.readBytes(name, 20);
+                file.read(&ibagNdx, 2);
+                //Helpers::printRawBytes(SF2reader::sfbk->pdta.inst[i].achInstName, 20);
+                Helpers::printRawBytes(name, 20);
+                USerial.print(", ibagNdx: ");
+                USerial.print(ibagNdx);
                 USerial.println("\n");
             }
+            file.close();
         }
         else if (strcmp(command, "ping") == 0)
         {

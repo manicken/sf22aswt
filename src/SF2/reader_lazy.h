@@ -5,41 +5,14 @@
 #include "structures.h"
 #include <SD.h>
 #include "helpers.h"
+#include "common.h"
 
 #define USerial SerialUSB1
 
 namespace SF2::lazy_reader
 {
     sfbk_rec_lazy *sfbk;
-    uint32_t fileSize;
-
     bool lastReadWasOK = false;
-
-    String lastError; // TODO: change string lastError into a enum
-    uint64_t lastErrorPosition;
-    size_t lastReadCount = 0; // used to track errors
-    #define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-
-    bool ReadStringUsingLeadingSize(File &file, String& string)
-    {
-        uint32_t size = 0;
-        if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting infoblock string size")
-        //DSerial.printf("string size:%ld",size);
-        char bytes[size];
-        if ((lastReadCount = file.readBytes(bytes, size)) != size) FILE_ERROR("read error - while reading infoblock string")
-        
-        // TODO. sanitize bytes
-        string = String(bytes);
-        //printRawBytes(str.c_str(), size);
-
-        return true;
-    }
-    bool verifyFourCC(const char* fourCC)
-    {
-        for (int i=0;i<4;i++)
-            if (fourCC[i] < 32 || fourCC[i] > 126) return false;
-        return true;
-    }
 
     bool read_sdta_block(File &file);
     bool read_pdta_block(File &br);
@@ -92,6 +65,7 @@ namespace SF2::lazy_reader
             if (strncmp(fourCC, "INFO", 4) == 0)
             {
                 sfbk->info_position = file.position();
+                sfbk->info_size = listSize;
                 if (file.seek(file.position() + listSize - 4) == false) FILE_ERROR("seek error - while skipping INFO block")
                 
                 //file.close(); return true; // early return debug test
@@ -117,6 +91,7 @@ namespace SF2::lazy_reader
 
         file.close();
         lastReadWasOK = true;
+        SF2::filePath = filePath;
         return true;
     }
 
