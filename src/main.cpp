@@ -46,20 +46,20 @@ AudioConnection ac4(wavetable, 0, i2sOut, 1);
 //AudioOutputUSB usb;
 
 void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
-    USerial.print("note on: ");
+    /*USerial.print("note on: ");
     USerial.print(note);
     USerial.print(", velocity: ");
-    USerial.println(velocity);
+    USerial.println(velocity);*/
     //waveform.frequency(noteFreqs[note]);
     wavetable.playNote(note, velocity);
     //waveform.amplitude(1.0);
 }
 
 void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
-    USerial.print("note off: ");
+    /*USerial.print("note off: ");
     USerial.print(note);
     USerial.print(", velocity: ");
-    USerial.println(velocity);
+    USerial.println(velocity);*/
     //waveform.amplitude(0);
     wavetable.stop();
 }
@@ -238,9 +238,9 @@ void processSerialCommand()
 
             //USerial.println(inst_temp.ToString());
 
-            USerial.print("sample count: "); USerial.println(inst_temp.sample_count);
+            USerial.print("\nsample count: "); USerial.println(inst_temp.sample_count);
             long endTime = micros();
-            USerial.print("load instrument took: ");
+            USerial.print("\nload instrument configuration took: ");
             USerial.print(endTime-startTime);
             USerial.println(" microseconds");
             
@@ -251,7 +251,7 @@ void processSerialCommand()
             SF2::lazy_reader::ReadSampleDataFromFile(inst_temp);
             SF2::converter::toFinal(inst_temp, inst_final);
             endTime = micros();
-            USerial.print("load instrument sample data took: ");
+            USerial.print("\nload instrument sample data took: ");
             USerial.print(endTime-startTime);
             USerial.println(" microseconds");
 

@@ -465,14 +465,16 @@ namespace SF2::lazy_reader
         } 
         samples = new sample_data[inst.sample_count];
         sample_count = inst.sample_count;
+        int totalSize = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
             //USerial.print("reading sample: "); USerial.println(si);
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
-            USerial.print("sample size inclusive padding: "); USerial.println(ary_length);
+            
             samples[si].data = new uint32_t[ary_length];
+            totalSize += ary_length;
             //USerial.println("try seek  ");
             file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2);
             //USerial.println("seek complete ");
@@ -490,6 +492,7 @@ namespace SF2::lazy_reader
             }
             inst.samples[si].sample = (int16_t*)samples[si].data;
         }
+        USerial.print("\ntotal size in bytes of all loaded samples inclusive padding: "); USerial.println(totalSize*4);
         file.close();
         return true;
     }
