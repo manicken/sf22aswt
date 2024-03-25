@@ -17,6 +17,8 @@ namespace SF2
     uint64_t lastErrorPosition;
     size_t lastReadCount = 0; // used to track errors
     #define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
+    int sample_count = 0;
+    sample_data *samples;
 
     bool ReadStringUsingLeadingSize(File &file, String& string)
     {

@@ -11,14 +11,20 @@
  * size is the block size
  * */
 
+#define USerial SerialUSB1
 
 namespace SF2
 {
+    /** make it easier to manage sample datas*/
+    class sample_data {
+      public:
+        /** array of sample data*/
+        uint32_t *data; 
+    };
 
-    struct sample_data {
+    struct sample_header { // rename it to sample_header instead of sample_data
         // SAMPLE VALUES
-        uint32_t sample_start; // used to get final sample data from file
-        uint32_t sample_lenght;// used to get final sample data from file
+        const int16_t* sample;
         bool LOOP;
         int INDEX_BITS;
         float PER_HERTZ_PHASE_INCREMENT;
@@ -48,12 +54,144 @@ namespace SF2
         float MODULATION_PITCH_COEFFICIENT_SECOND;
         int32_t MODULATION_AMPLITUDE_INITIAL_GAIN;
         int32_t MODULATION_AMPLITUDE_SECOND_GAIN;
+
+        
     };
     struct instrument_data {
-      
         uint8_t sample_count;
         uint8_t* sample_note_ranges;
-        sample_data* samples;
+        sample_header* samples;
+    };
+    struct sample_header_temp { // rename it to sample_header_temp instead of sample_data_temp
+        bool invalid;
+        // SAMPLE VALUES
+        /** used to get final sample data from file*/
+        uint32_t sample_start;
+        /** pointer to sample data when loaded into ram*/
+        const int16_t* sample;
+        
+
+        bool LOOP;
+        int SAMPLE_NOTE;
+        int CENTS_OFFSET;
+        int LENGTH;
+        int LENGTH_BITS;
+        float SAMPLE_RATE;
+        int LOOP_START;
+        int LOOP_END;
+        float INIT_ATTENUATION;
+
+        // VOLUME ENVELOPE VALUES
+        float DELAY_ENV;
+        float ATTACK_ENV;
+        float HOLD_ENV;
+        float DECAY_ENV;
+        float RELEASE_ENV;
+        float SUSTAIN_FRAC;
+
+        // VIRBRATO VALUES
+        float VIB_DELAY_ENV;
+        float VIB_INC_ENV;
+        int VIB_PITCH_INIT;
+        int VIB_PITCH_SCND;
+
+        // MODULATION VALUES
+        float MOD_DELAY_ENV;
+        float MOD_INC_ENV;
+        int MOD_PITCH_INIT;
+        int MOD_PITCH_SCND;
+        float MOD_AMP_INIT_GAIN;
+        float MOD_AMP_SCND_GAIN;
+
+        String ToString()
+        {
+          String ret = "";
+          ret.append("Sample Start:"); ret.append(sample_start);
+          ret.append("\n, LOOP:"); ret.append(LOOP);
+          ret.append("\n, SAMPLE_NOTE:"); ret.append(SAMPLE_NOTE);
+          ret.append("\n, CENTS_OFFSET:"); ret.append(CENTS_OFFSET);
+          ret.append("\n, LENGTH:"); ret.append(LENGTH);
+          ret.append("\n, LENGTH_BITS:"); ret.append(LENGTH_BITS);
+          ret.append("\n, SAMPLE_RATE:"); ret.append(SAMPLE_RATE);
+          ret.append("\n, LOOP_START:"); ret.append(LOOP_START);
+          ret.append("\n, LOOP_END:"); ret.append(LOOP_END);
+          ret.append("\n, INIT_ATTENUATION:"); ret.append(INIT_ATTENUATION);
+
+          ret.append("\n, DELAY_ENV:"); ret.append(DELAY_ENV);
+          ret.append("\n, ATTACK_ENV:"); ret.append(ATTACK_ENV);
+          ret.append("\n, HOLD_ENV:"); ret.append(HOLD_ENV);
+          ret.append("\n, DECAY_ENV:"); ret.append(DECAY_ENV);
+          ret.append("\n, RELEASE_ENV:"); ret.append(RELEASE_ENV); 
+          ret.append("\n, SUSTAIN_FRAC:"); ret.append(SUSTAIN_FRAC);
+
+          ret.append("\n, VIB_DELAY_ENV:"); ret.append(VIB_DELAY_ENV);
+          ret.append("\n, VIB_INC_ENV:"); ret.append(VIB_INC_ENV);
+          ret.append("\n, VIB_PITCH_INIT:"); ret.append(VIB_PITCH_INIT);
+          ret.append("\n, VIB_PITCH_SCND:"); ret.append(VIB_PITCH_SCND);
+
+          ret.append("\n, MOD_DELAY_ENV:"); ret.append(MOD_DELAY_ENV);
+          ret.append("\n, MOD_INC_ENV:"); ret.append(MOD_INC_ENV);
+          ret.append("\n, MOD_PITCH_INIT:"); ret.append(MOD_PITCH_INIT);
+          ret.append("\n, MOD_PITCH_SCND:"); ret.append(MOD_PITCH_SCND);
+          ret.append("\n, MOD_AMP_INIT_GAIN:"); ret.append(MOD_AMP_INIT_GAIN);
+          ret.append("\n, MOD_AMP_SCND_GAIN:"); ret.append(MOD_AMP_SCND_GAIN);
+          return ret;
+        }
+
+        sample_header toFinal()
+        {
+            return 
+            {
+                (int16_t*)sample, // sample data pointer, this will be reset after this function call as the data for the sample need to be loaded and handled outside this scope
+                LOOP, // LOOP
+                LENGTH_BITS, // LENGTH_BITS
+                (1 << (32 - LENGTH_BITS)) * WAVETABLE_CENTS_SHIFT(CENTS_OFFSET) * SAMPLE_RATE / WAVETABLE_NOTE_TO_FREQUENCY(SAMPLE_NOTE) / AUDIO_SAMPLE_RATE_EXACT + 0.5f, // PER_HERTZ_PHASE_INCREMENT
+                ((uint32_t)LENGTH - 1) << (32 - LENGTH_BITS), // MAX_PHASE
+                ((uint32_t)LOOP_END - 1) << (32 - LENGTH_BITS), // LOOP_PHASE_END
+                (((uint32_t)LOOP_END - 1) << (32 - LENGTH_BITS)) - (((uint32_t)LOOP_START - 1) << (32 - LENGTH_BITS)), // LOOP_PHASE_LENGTH
+                uint16_t(UINT16_MAX * WAVETABLE_DECIBEL_SHIFT(INIT_ATTENUATION)), // INITIAL_ATTENUATION_SCALAR
+                // VOLUME ENVELOPE VALUES
+                uint32_t(DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // DELAY_COUNT
+                uint32_t(ATTACK_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // ATTACK_COUNT
+                uint32_t(HOLD_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // HOLD_COUNT
+                uint32_t(DECAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // DECAY_COUNT
+                uint32_t(RELEASE_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // RELEASE_COUNT
+                int32_t((1.0 - WAVETABLE_DECIBEL_SHIFT(SUSTAIN_FRAC)) * AudioSynthWavetable::UNITY_GAIN), // SUSTAIN_MULT
+                // VIRBRATO VALUES
+                uint32_t(VIB_DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / (2 * AudioSynthWavetable::LFO_PERIOD)), // VIBRATO_DELAY
+                uint32_t(VIB_INC_ENV * AudioSynthWavetable::LFO_PERIOD * (UINT32_MAX / AUDIO_SAMPLE_RATE_EXACT)), // VIBRATO_INCREMENT
+                (WAVETABLE_CENTS_SHIFT(VIB_PITCH_INIT) - 1.0) * 4, // VIBRATO_PITCH_COEFFICIENT_INITIAL
+                (1.0 - WAVETABLE_CENTS_SHIFT(VIB_PITCH_SCND)) * 4, // VIBRATO_COEFFICIENT_SECONDARY
+                // MODULATION VALUES
+                uint32_t(MOD_DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / (2 * AudioSynthWavetable::LFO_PERIOD)), // MODULATION_DELAY
+                uint32_t(MOD_INC_ENV * AudioSynthWavetable::LFO_PERIOD * (UINT32_MAX / AUDIO_SAMPLE_RATE_EXACT)), // MODULATION_INCREMENT
+                (WAVETABLE_CENTS_SHIFT(MOD_PITCH_INIT) - 1.0) * 4, // MODULATION_PITCH_COEFFICIENT_INITIAL
+                (1.0 - WAVETABLE_CENTS_SHIFT(MOD_PITCH_SCND)) * 4, // MODULATION_PITCH_COEFFICIENT_SECOND
+                int32_t(UINT16_MAX * (WAVETABLE_DECIBEL_SHIFT(MOD_AMP_INIT_GAIN) - 1.0)) * 4, // MODULATION_AMPLITUDE_INITIAL_GAIN
+                int32_t(UINT16_MAX * (1.0 - WAVETABLE_DECIBEL_SHIFT(MOD_AMP_SCND_GAIN))) * 4, // MODULATION_AMPLITUDE_FINAL_GAIN
+            };
+        }
+    };
+    struct instrument_data_temp {
+        String filePath;
+        uint8_t sample_count;
+        uint8_t* sample_note_ranges;
+        sample_header_temp* samples;
+
+        String ToString()
+        {
+          String str = "";
+          str.append("Sample Count: "); str.append(sample_count);
+          str.append("\n");
+          for (int i = 0;i<sample_count;i++)
+          {
+              str.append("Sample: "); str.append(i);
+              str.append(", Range max:"); str.append(sample_note_ranges[i]);
+              str.append("\n");
+              str.append(samples[i].ToString());
+          }
+          return str;
+        }
     };
 
   

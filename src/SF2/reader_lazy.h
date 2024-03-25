@@ -248,9 +248,8 @@ namespace SF2::lazy_reader
                 return true;
             }
         }
-        
         // try again with global bag
-        uint16_t globalGenCount = bags[sampleIndex+1].count;
+        uint16_t globalGenCount = bags[0].count;
         for (int i = 0; i < globalGenCount; i++)
         {
             if (bags[0].items[i].sfGenOper == genType) {
@@ -261,22 +260,22 @@ namespace SF2::lazy_reader
         return false;
     }
 
-    double get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN, double MAX)
+    float get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
     {
         SF2GeneratorAmount genval;
-        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.centibels(): DEFAULT;
+        float val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.centibels(): DEFAULT;
         return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
     }
-    double get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN)
+    float get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN)
     {
         SF2GeneratorAmount genval;
-        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.cents()*1000.0f: DEFAULT;
+        float val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.cents()*1000.0f: DEFAULT;
         return (val > MIN) ? val : MIN;
     }
-    double get_hertz(bag_of_gens* bags, int sampleIndex, SFGenerator genType, double DEFAULT, double MIN, double MAX)
+    float get_hertz(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
     {
         SF2GeneratorAmount genval;
-        double val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.absolute_cents(): DEFAULT;
+        float val = get_gen_parameter_value(bags, sampleIndex, genType, &genval)?genval.absolute_cents(): DEFAULT;
         return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
     }
     int get_pitch_cents(bag_of_gens* bags, int sampleIndex, SFGenerator genType, int DEFAULT, int MIN, int MAX)
@@ -309,20 +308,20 @@ namespace SF2::lazy_reader
     int get_fine_tuning(bag_of_gens* bags, int sampleIndex)
     {
         SF2GeneratorAmount genval;
-        return get_gen_parameter_value(bags, sampleIndex, SFGenerator::overridingRootKey, &genval)?genval.Amount:0;
+        return get_gen_parameter_value(bags, sampleIndex, SFGenerator::fineTune, &genval)?genval.Amount:0;
     }
     bool get_sample_header(File &file, bag_of_gens* bags, int sampleIndex, shdr_rec *shdr)
     {
         SF2GeneratorAmount genval;
         if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleID, &genval) == false) return false;
         if (file.seek(sfbk->pdta.shdr_position + genval.UAmount*shdr_rec::Size) == false) return false;
-        if (file.read(&shdr, shdr_rec::Size) != shdr_rec::Size) return false;
+        if (file.read(shdr, shdr_rec::Size) != shdr_rec::Size) return false;
         return true;
     }
     bool get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
     {
         SF2GeneratorAmount genVal;
-        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false) return defaultValue;
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ USerial.println("could not get samplemode"); return defaultValue; }
         
         return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
     }
@@ -336,6 +335,11 @@ namespace SF2::lazy_reader
         }
         return length;
     }
+    int get_key_range_end(bag_of_gens* bags, int sampleIndex)
+    {
+        SF2GeneratorAmount genval;
+        return get_gen_parameter_value(bags, sampleIndex, SFGenerator::keyRange, &genval)?genval.rangeHigh():127;
+    }
     int get_length_bits(int len)
     {
         int length_bits = 0;
@@ -347,7 +351,7 @@ namespace SF2::lazy_reader
         return length_bits;
     }
 
-    bool load_instrument(uint index, instrument_data &inst)
+    bool load_instrument(uint index, SF2::instrument_data_temp &inst)
     {
         if (index > sfbk->pdta.inst_count - 1) return false;
 
@@ -361,17 +365,19 @@ namespace SF2::lazy_reader
         uint16_t ibag_count = ibag_endIndex - ibag_startIndex; 
         uint16_t igen_ndxs[ibag_count+1]; // +1 because of the soundfont structure 
         uint16_t dummy = 0;
-        USerial.print("ibag_start index: "); USerial.print(ibag_startIndex);
+        USerial.print("\nibag_start index: "); USerial.print(ibag_startIndex);
         USerial.print(", ibag_end index: "); USerial.println(ibag_endIndex);
         USerial.println(" ");
-        file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex);
+        if (file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex) == false) {USerial.println("seek error to ibags"); file.close(); return false;}
+        USerial.println("seek complete");
         for (int i=0;i<ibag_count+1;i++)
         {
-            file.read(&igen_ndxs[i], 2);
-            file.read(&dummy, 2); // imod not used
+            if (file.read(&igen_ndxs[i], 2) != 2) {USerial.println("read error - while reading &igen_ndxs[i]"); file.close(); return false;}
+            if (file.read(&dummy, 2) != 2) {USerial.println("read error - while reading dummy"); file.close(); return false;}; // imod not used
             USerial.print(igen_ndxs[i]);
             USerial.print(", ");
         }
+        USerial.println();
         // store gen data in bags for faster access
         bag_of_gens bags[ibag_count];
         for (int i=0;i<ibag_count;i++)
@@ -381,28 +387,109 @@ namespace SF2::lazy_reader
             uint16_t count = end-start;
             bags[i].items = new gen_rec[count];
             bags[i].count = count;
-            file.seek(sfbk->pdta.igen_position + start*gen_rec::Size);
+            if (file.seek(sfbk->pdta.igen_position + start*gen_rec::Size) == false) {USerial.println("seek error to igen"); file.close(); return false;};
             for (int i2=0;i2<count;i2++)
             {
                 file.read(&bags[i].items[i2], gen_rec::Size);
             }
         }
-
+        USerial.println("temp storage in bags complete");
         inst.sample_count = ibag_count - 1;
-        inst.samples = new sample_data[ibag_count - 1];
-        for (int i=0;i<inst.sample_count;i++)
+        inst.sample_note_ranges = new uint8_t[inst.sample_count];
+        inst.samples = new sample_header_temp[inst.sample_count];
+        for (int si=0;si<inst.sample_count;si++)
         {
             shdr_rec shdr;
-            if (get_sample_header(file, bags, i, &shdr) == false) continue;
-            
+            //USerial.print("getting sample x: ");USerial.println(si);
+            if (get_sample_header(file, bags, si, &shdr) == false) { 
+                inst.samples[si].invalid = true;
+                USerial.print("error - while getting sample header @ "); USerial.println(si);
+                continue;
+            }
+            //USerial.println("getting data");
+            inst.sample_note_ranges[si] = get_key_range_end(bags, si);
+            inst.samples[si].invalid = false; // used later as a failsafe when getting data
+            inst.samples[si].sample_start = shdr.dwStart;
+            inst.samples[si].LOOP = get_sample_repeat(bags, si, false);
+            inst.samples[si].SAMPLE_NOTE = get_sample_note(bags, si, shdr);
+            inst.samples[si].CENTS_OFFSET = get_fine_tuning(bags, si);
+            inst.samples[si].LENGTH = get_length(bags, si, shdr);
+            inst.samples[si].LENGTH_BITS = get_length_bits(inst.samples[si].LENGTH);
+            inst.samples[si].SAMPLE_RATE = shdr.dwSampleRate;
+            inst.samples[si].LOOP_START = get_cooked_loop_start(bags, si, shdr);
+            inst.samples[si].LOOP_END = get_cooked_loop_end(bags, si, shdr);
+            inst.samples[si].INIT_ATTENUATION = get_decibel_value(bags, si, SFGenerator::initialAttenuation, 0, 0, 144) * -1;
+            //USerial.println("getting vol env");
+            // VOLUME ENVELOPE VALUES
+            inst.samples[si].DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVolEnv, 0, 0);
+            inst.samples[si].ATTACK_ENV = get_timecents_value(bags, si, SFGenerator::attackVolEnv, 1, 1);
+            inst.samples[si].HOLD_ENV = get_timecents_value(bags, si, SFGenerator::holdVolEnv, 0, 0);
+            inst.samples[si].DECAY_ENV = get_timecents_value(bags, si, SFGenerator::decayVolEnv, 1, 1);
+            inst.samples[si].RELEASE_ENV = get_timecents_value(bags, si, SFGenerator::releaseVolEnv, 1, 1);
+            inst.samples[si].SUSTAIN_FRAC = get_decibel_value(bags, si, SFGenerator::sustainVolEnv, 0, 0, 144) * -1;
+            //USerial.println("getting vib vals");
+            // VIRBRATO VALUES
+            inst.samples[si].VIB_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVibLFO, 0, 0);
+            inst.samples[si].VIB_INC_ENV = get_hertz(bags, si, SFGenerator::freqVibLFO, 8.176, 0.1, 100);
+            inst.samples[si].VIB_PITCH_INIT = get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000);
+            inst.samples[si].VIB_PITCH_SCND = inst.samples[si].VIB_PITCH_INIT * -1; //get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000) * -1;
+            //USerial.println("getting mod vals");
+            // MODULATION VALUES
+            inst.samples[si].MOD_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayModLFO, 0, 0);
+            inst.samples[si].MOD_INC_ENV = get_hertz(bags, si, SFGenerator::freqModLFO, 8.176, 0.1, 100);
+            inst.samples[si].MOD_PITCH_INIT = get_pitch_cents(bags, si, SFGenerator::modLfoToPitch, 0, -12000, 12000);
+            inst.samples[si].MOD_PITCH_SCND = inst.samples[si].MOD_PITCH_INIT * -1; //get_pitch_cents(bags, si, SFGenerator::modLfoToPitch, 0, -12000, 12000) * -1;
+            inst.samples[si].MOD_AMP_INIT_GAIN = get_decibel_value(bags, si, SFGenerator::modLfoToVolume, 0, -96, 96);
+            inst.samples[si].MOD_AMP_SCND_GAIN = inst.samples[si].MOD_AMP_INIT_GAIN * -1; //get_decibel_value(bags, si, SFGenerator::modLfoToVolume, 0, -96, 96) * -1;
         }
 
         // Deallocate memory for bags_of_gens
         for (int i = 0; i < ibag_count; i++) {
             delete[] bags[i].items; // Deallocate memory for the array of pointers
         }
-        delete[] bags;
+        USerial.println("instrument load complete");
+        file.close();
+        return true;
+    }
 
+    bool ReadSampleDataFromFile(instrument_data_temp &inst)
+    {
+        File file = SD.open(SF2::filePath.c_str());
+        if (!file) {USerial.println("cannot open file"); return false;}
+        if (samples != nullptr) {
+            for (int i = 0;i<sample_count;i++)
+            {
+                delete[] samples[i].data;
+            }
+            delete[] samples;
+        } 
+        samples = new sample_data[inst.sample_count];
+        sample_count = inst.sample_count;
+        for (int si=0;si<inst.sample_count;si++)
+        {
+            USerial.print("reading sample: "); USerial.println(si);
+            int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
+            int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
+            int ary_length = length_32 + pad_length;
+            USerial.print("sample size inclusive padding: "); USerial.println(ary_length);
+            samples[si].data = new uint32_t[ary_length];
+            USerial.println("try seek  ");
+            file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2);
+            USerial.println("seek complete ");
+            int i = 0;
+            for (i=0;i<length_32;i++)
+            {
+                //USerial.println(".");
+                file.read(&samples[si].data[i], 4);
+            }
+            
+            while (i < ary_length)
+            {
+                samples[si].data[i++] = 0x00000000;
+                //data[i++] = 0;
+            }
+            inst.samples[si].sample = (int16_t*)samples[si].data;
+        }
         file.close();
         return true;
     }
