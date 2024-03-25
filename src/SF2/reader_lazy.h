@@ -467,15 +467,15 @@ namespace SF2::lazy_reader
         sample_count = inst.sample_count;
         for (int si=0;si<inst.sample_count;si++)
         {
-            USerial.print("reading sample: "); USerial.println(si);
+            //USerial.print("reading sample: "); USerial.println(si);
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             USerial.print("sample size inclusive padding: "); USerial.println(ary_length);
             samples[si].data = new uint32_t[ary_length];
-            USerial.println("try seek  ");
+            //USerial.println("try seek  ");
             file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2);
-            USerial.println("seek complete ");
+            //USerial.println("seek complete ");
             int i = 0;
             for (i=0;i<length_32;i++)
             {

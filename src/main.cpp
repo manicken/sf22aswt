@@ -14,6 +14,9 @@
 
 #include <ArduinoJson.h>
 
+const float noteFreqs[128] = {8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562, 12.25, 12.978, 13.75, 14.568, 15.434, 16.352, 17.324, 18.354, 19.445, 20.602, 21.827, 23.125, 24.5, 25.957, 27.5, 29.135, 30.868, 32.703, 34.648, 36.708, 38.891, 41.203, 43.654, 46.249, 48.999, 51.913, 55, 58.27, 61.735, 65.406, 69.296, 73.416, 77.782, 82.407, 87.307, 92.499, 97.999, 103.826, 110, 116.541, 123.471, 130.813, 138.591, 146.832, 155.563, 164.814, 174.614, 184.997, 195.998, 207.652, 220, 233.082, 246.942, 261.626, 277.183, 293.665, 311.127, 329.628, 349.228, 369.994, 391.995, 415.305, 440, 466.164, 493.883, 523.251, 554.365, 587.33, 622.254, 659.255, 698.456, 739.989, 783.991, 830.609, 880, 932.328, 987.767, 1046.502, 1108.731, 1174.659, 1244.508, 1318.51, 1396.913, 1479.978, 1567.982, 1661.219, 1760, 1864.655, 1975.533, 2093.005, 2217.461, 2349.318, 2489.016, 2637.02, 2793.826, 2959.955, 3135.963, 3322.438, 3520, 3729.31, 3951.066, 4186.009, 4434.922, 4698.636, 4978.032, 5274.041, 5587.652, 5919.911, 6271.927, 6644.875, 7040, 7458.62, 7902.133, 8372.018, 8869.844, 9397.273, 9956.063, 10548.08, 11175.3, 11839.82, 12543.85};
+
+
 #define USerial SerialUSB1
 
 //#include "SF2/reader.h"
@@ -22,9 +25,48 @@
 #define SF2reader SF2::lazy_reader
 
 AudioSynthWavetable wavetable;
+AudioSynthWaveform waveform;
+
+AudioControlSGTL5000             outputCtrl;
+
+AudioOutputUSB usbOut;
+AudioOutputI2S i2sOut;
+/*
+AudioConnection ac(waveform, 0, usbOut, 0);
+AudioConnection ac2(waveform, 0, usbOut, 1);
+
+AudioConnection ac3(waveform, 0, i2sOut, 0);
+AudioConnection ac4(waveform, 0, i2sOut, 1);
+*/
+AudioConnection ac(wavetable, 0, usbOut, 0);
+AudioConnection ac2(wavetable, 0, usbOut, 1);
+
+AudioConnection ac3(wavetable, 0, i2sOut, 0);
+AudioConnection ac4(wavetable, 0, i2sOut, 1);
 //AudioOutputUSB usb;
 
+void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
+    USerial.print("note on: ");
+    USerial.print(note);
+    USerial.print(", velocity: ");
+    USerial.println(velocity);
+    //waveform.frequency(noteFreqs[note]);
+    wavetable.playNote(note, velocity);
+    //waveform.amplitude(1.0);
+}
 
+void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
+    USerial.print("note off: ");
+    USerial.print(note);
+    USerial.print(", velocity: ");
+    USerial.println(velocity);
+    //waveform.amplitude(0);
+    wavetable.stop();
+}
+
+void usbMidi_ControlChange(byte channel, byte control, byte value) {
+
+}
 
 
 // Define the maximum size of the JSON input
@@ -36,6 +78,7 @@ void processSerialCommand();
 
 void setup()
 {
+    AudioMemory(128);
 	//Serial.begin(115200);
     USerial.begin(115200);
     //Serial1.begin(115200);
@@ -47,6 +90,15 @@ void setup()
     {
         cardInitialized = true;
     }
+
+    usbMIDI.setHandleNoteOn(usbMidi_NoteOn);
+    usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
+    usbMIDI.setHandleControlChange(usbMidi_ControlChange);
+
+
+    waveform.begin(0, 50, WAVEFORM_SQUARE);
+    outputCtrl.enable();
+        outputCtrl.volume(0.3f);
 }
 long lastMs = 0;
 void loop()
@@ -58,6 +110,7 @@ void loop()
     }*/
     ledBlinkTask();
     processSerialCommand();
+    usbMIDI.read();
 }
 
 void processSerialCommand()
@@ -190,20 +243,21 @@ void processSerialCommand()
             USerial.print("load instrument took: ");
             USerial.print(endTime-startTime);
             USerial.println(" microseconds");
+            
 
             USerial.println("Start to load sample data from file");
             startTime = micros();
-            //SF2::instrument_data inst_final;
+            SF2::instrument_data inst_final;
             SF2::lazy_reader::ReadSampleDataFromFile(inst_temp);
-            //SF2::converter::toFinal(inst_temp, inst_final);
+            SF2::converter::toFinal(inst_temp, inst_final);
             endTime = micros();
             USerial.print("load instrument sample data took: ");
             USerial.print(endTime-startTime);
             USerial.println(" microseconds");
 
-            //AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
+            AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
             // the following is for later
-            //wavetable.setInstrument(wt_inst);
+            wavetable.setInstrument(wt_inst);
 
             
         }
