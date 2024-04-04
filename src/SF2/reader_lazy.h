@@ -22,13 +22,13 @@ namespace SF2::lazy_reader
      *  and only the file positions for
      *  all important blocks are stored into ram
      */
-    bool ReadFile(String filePath)
+    bool ReadFile(const char * filePath)
     {
         lastReadWasOK = false;
         if (sfbk == nullptr) sfbk = new sfbk_rec_lazy();
 
-        File file = SD.open(filePath.c_str());
-        if (!file) {  lastError = "warning - cannot open file " + filePath; return false; }
+        File file = SD.open(filePath);
+        if (!file) {  lastError = "warning - cannot open file " + String(filePath); return false; }
         fileSize = file.size();
 
         char fourCC[4];
@@ -353,7 +353,7 @@ namespace SF2::lazy_reader
 
     bool load_instrument(uint index, SF2::instrument_data_temp &inst)
     {
-        if (index > sfbk->pdta.inst_count - 1) return false;
+        if (index > sfbk->pdta.inst_count - 1){ lastError = "load instrument index out of range"; return false; }
 
         File file = SD.open(SF2::filePath.c_str());
         file.seek(sfbk->pdta.inst_position + inst_rec::Size*index + 20);
