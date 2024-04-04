@@ -6,7 +6,7 @@
 #include <SerialFlash.h>
 #include <MIDI.h>
 #include "ledblinker.h"
-
+#include "Mixer80.h"
 
 #include "SF2/helpers.h"
 #include "SF2/common.h"
@@ -23,9 +23,14 @@ const float noteFreqs[128] = {8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562
 //#define SF2reader SF2::reader
 #include "SF2/reader_lazy.h"
 #define SF2reader SF2::lazy_reader
+#define VOICE_COUNT 80
 
-AudioSynthWavetable wavetable;
-AudioSynthWaveform waveform;
+AudioSynthWavetable wavetable[VOICE_COUNT];
+int notes[VOICE_COUNT];
+bool sustainActive=false;
+//AudioSynthWaveform waveform;
+
+AudioMixer80 mixer;
 
 AudioControlSGTL5000             outputCtrl;
 
@@ -38,12 +43,43 @@ AudioConnection ac2(waveform, 0, usbOut, 1);
 AudioConnection ac3(waveform, 0, i2sOut, 0);
 AudioConnection ac4(waveform, 0, i2sOut, 1);
 */
-AudioConnection ac(wavetable, 0, usbOut, 0);
-AudioConnection ac2(wavetable, 0, usbOut, 1);
+AudioConnection voiceConnections[VOICE_COUNT];
+//AudioConnection toMix_1(wavetable[0], 0, mixer, 0);
+//AudioConnection toMix_2(wavetable[1], 0, mixer, 1);
+//AudioConnection toMix_3(wavetable[2], 0, mixer, 2);
+//AudioConnection toMix_4(wavetable[3], 0, mixer, 3);
+AudioConnection toUsb_1(mixer, 0, usbOut, 0);
+AudioConnection toUsb_2(mixer, 0, usbOut, 1);
 
-AudioConnection ac3(wavetable, 0, i2sOut, 0);
-AudioConnection ac4(wavetable, 0, i2sOut, 1);
+AudioConnection toI2s_1(mixer, 0, i2sOut, 0);
+AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
 //AudioOutputUSB usb;
+void InitVoices()
+{
+    for (int i=0;i<VOICE_COUNT;i++)
+    {
+        voiceConnections[i].connect(wavetable[i], 0, mixer, i);
+        notes[i] = -1; // set to free
+    }
+}
+void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
+{
+    for (int i=0;i<VOICE_COUNT;i++)
+        wavetable[i].setInstrument(inst);
+}
+void activateSustain()
+{
+    sustainActive = true;
+}
+
+void deactivateSustain()
+{
+    sustainActive = false;
+    for (int i=0;i<VOICE_COUNT;i++) {
+        wavetable[i].stop();
+        notes[i] = -1;
+    }
+}
 
 void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     /*USerial.print("note on: ");
@@ -51,7 +87,13 @@ void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     USerial.print(", velocity: ");
     USerial.println(velocity);*/
     //waveform.frequency(noteFreqs[note]);
-    wavetable.playNote(note, velocity);
+    for (int i=0;i<VOICE_COUNT;i++){
+        if (notes[i]==-1) {
+            notes[i] = note;
+            wavetable[i].playNote(note, velocity);
+            return;
+        }
+    }
     //waveform.amplitude(1.0);
 }
 
@@ -61,11 +103,26 @@ void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
     USerial.print(", velocity: ");
     USerial.println(velocity);*/
     //waveform.amplitude(0);
-    wavetable.stop();
+    if (sustainActive) return;
+
+    for (int i=0;i<VOICE_COUNT;i++){
+        if (notes[i]==note) {
+            notes[i] = -1;
+            wavetable[i].stop();
+            return;
+        }
+    }
 }
 
 void usbMidi_ControlChange(byte channel, byte control, byte value) {
-
+    switch (control) { // cases 20-31,102-119 is undefined in midi spec
+        case 64:
+          if (value == 0)
+            deactivateSustain();
+          else if (value == 127)
+            activateSustain();
+          break;
+    }
 }
 
 
@@ -79,6 +136,7 @@ void processSerialCommand();
 void setup()
 {
     AudioMemory(128);
+    InitVoices();
 	//Serial.begin(115200);
     USerial.begin(115200);
     //Serial1.begin(115200);
@@ -96,7 +154,7 @@ void setup()
     usbMIDI.setHandleControlChange(usbMidi_ControlChange);
 
 
-    waveform.begin(0, 50, WAVEFORM_SQUARE);
+    //waveform.begin(0, 50, WAVEFORM_SQUARE);
     outputCtrl.enable();
         outputCtrl.volume(0.3f);
 }
@@ -247,7 +305,7 @@ void processSerialCommand()
         USerial.println(" microseconds");
 
         AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
-        wavetable.setInstrument(wt_inst);
+        SetInstrument(wt_inst);
 
         USerial.println("json:{'cmd':'instrument_loaded'}");
     }
