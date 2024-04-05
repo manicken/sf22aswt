@@ -27,7 +27,8 @@ const float noteFreqs[128] = {8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562
 
 AudioSynthWavetable wavetable[VOICE_COUNT];
 int notes[VOICE_COUNT];
-bool sustainActive=false;
+bool sustain[VOICE_COUNT];
+//bool sustainActive=false;
 //AudioSynthWaveform waveform;
 
 AudioMixer80 mixer;
@@ -60,6 +61,7 @@ void InitVoices()
     {
         voiceConnections[i].connect(wavetable[i], 0, mixer, i);
         notes[i] = -1; // set to free
+        sustain[i] = false;
     }
 }
 void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
@@ -69,15 +71,23 @@ void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
 }
 void activateSustain()
 {
-    sustainActive = true;
+    //sustainActive = true;
+    for (int i=0;i<VOICE_COUNT;i++) {
+        if (notes[i] != -1)
+            sustain[i] = true;
+    }
 }
 
 void deactivateSustain()
 {
-    sustainActive = false;
+    //sustainActive = false;
     for (int i=0;i<VOICE_COUNT;i++) {
-        wavetable[i].stop();
-        notes[i] = -1;
+        if (notes[i] != -1 && sustain[i] == true) {
+            wavetable[i].stop();
+            notes[i] = -1;
+            sustain[i] = false;
+        }
+        
     }
 }
 
@@ -103,10 +113,10 @@ void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
     USerial.print(", velocity: ");
     USerial.println(velocity);*/
     //waveform.amplitude(0);
-    if (sustainActive) return;
+    //if (sustainActive) return;
 
     for (int i=0;i<VOICE_COUNT;i++){
-        if (notes[i]==note) {
+        if (notes[i]==note && sustain[i] == false) {
             notes[i] = -1;
             wavetable[i].stop();
             return;
@@ -206,35 +216,35 @@ void processSerialCommand()
             USerial.print(SF2::lastErrorPosition);
             USerial.print(", lastReadCount: ");
             USerial.println(SF2::lastReadCount);
+            return;
             // TODO. open and print a part of file contents if possible
             // using lastReadCount and position plus reading some bytes extra backwards
-        }
-        //else
-        {
-            
-            USerial.print("\n*** info ***\nfile size: "); USerial.print(SF2::fileSize);
-            USerial.print(", sfbk size: "); USerial.print(SF2reader::sfbk->size);
-            USerial.print(", info size: "); USerial.print(SF2reader::sfbk->info_size);
-            USerial.print(", sdta size:"); USerial.print(SF2reader::sfbk->sdta.size);
-            USerial.print(", pdta size: "); USerial.println(SF2reader::sfbk->pdta.size);
-
-            USerial.print("inst pos: "); USerial.print(SF2reader::sfbk->pdta.inst_position); USerial.print(", inst count: "); USerial.println(SF2reader::sfbk->pdta.inst_count);
-            USerial.print("ibag pos: "); USerial.print(SF2reader::sfbk->pdta.ibag_position); USerial.print(", ibag count: "); USerial.println(SF2reader::sfbk->pdta.ibag_count);
-            USerial.print("igen pos: "); USerial.print(SF2reader::sfbk->pdta.igen_position); USerial.print(", igen count: "); USerial.println(SF2reader::sfbk->pdta.igen_count);
-            USerial.print("shdr pos: "); USerial.print(SF2reader::sfbk->pdta.shdr_position); USerial.print(", shdr count: "); USerial.println(SF2reader::sfbk->pdta.shdr_count);
-
-            SF2::INFO info;
-            File file = SD.open(SF2::filePath.c_str());
-            file.seek(SF2reader::sfbk->info_position);
-            SF2::readInfoBlock(file, info);
-            file.close();
-            USerial.println(info.ToString());
         }
         long endTime = micros();
         USerial.print("open file took: ");
         USerial.print(endTime-startTime);
         USerial.println(" microseconds");
         USerial.println("json:{'cmd':'file_loaded'}");
+    }
+    else if (strncmp(serialRxBuffer, "print_info", 10) == 0)
+    {
+        USerial.print("\n*** info ***\nfile size: "); USerial.print(SF2::fileSize);
+        USerial.print(", sfbk size: "); USerial.print(SF2reader::sfbk->size);
+        USerial.print(", info size: "); USerial.print(SF2reader::sfbk->info_size);
+        USerial.print(", sdta size:"); USerial.print(SF2reader::sfbk->sdta.size);
+        USerial.print(", pdta size: "); USerial.println(SF2reader::sfbk->pdta.size);
+
+        USerial.print("inst pos: "); USerial.print(SF2reader::sfbk->pdta.inst_position); USerial.print(", inst count: "); USerial.println(SF2reader::sfbk->pdta.inst_count);
+        USerial.print("ibag pos: "); USerial.print(SF2reader::sfbk->pdta.ibag_position); USerial.print(", ibag count: "); USerial.println(SF2reader::sfbk->pdta.ibag_count);
+        USerial.print("igen pos: "); USerial.print(SF2reader::sfbk->pdta.igen_position); USerial.print(", igen count: "); USerial.println(SF2reader::sfbk->pdta.igen_count);
+        USerial.print("shdr pos: "); USerial.print(SF2reader::sfbk->pdta.shdr_position); USerial.print(", shdr count: "); USerial.println(SF2reader::sfbk->pdta.shdr_count);
+
+        SF2::INFO info;
+        File file = SD.open(SF2::filePath.c_str());
+        file.seek(SF2reader::sfbk->info_position);
+        SF2::readInfoBlock(file, info);
+        file.close();
+        USerial.println(info.ToString());
     }
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
@@ -297,7 +307,11 @@ void processSerialCommand()
         USerial.println("Start to load sample data from file");
         startTime = micros();
         SF2::instrument_data inst_final;
-        SF2::lazy_reader::ReadSampleDataFromFile(inst_temp);
+        if (SF2::lazy_reader::ReadSampleDataFromFile(inst_temp) == false)
+        {
+            USerial.println(SF2::lastError);
+            return;
+        }
         SF2::converter::toFinal(inst_temp, inst_final);
         endTime = micros();
         USerial.print("\nload instrument sample data took: ");

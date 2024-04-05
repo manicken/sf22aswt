@@ -321,7 +321,7 @@ namespace SF2::lazy_reader
     bool get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
     {
         SF2GeneratorAmount genVal;
-        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ USerial.println("could not get samplemode"); return defaultValue; }
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ /*USerial.println("could not get samplemode");*/ return defaultValue; }
         
         return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
     }
@@ -452,16 +452,26 @@ namespace SF2::lazy_reader
         return true;
     }
 
+    void FreePrevSampleData()
+    {
+        //USerial.println("try to free prev loaded sampledata");
+        for (int i = 0;i<sample_count;i++)
+        {
+            if (samples[i].data != nullptr) {
+                //USerial.println("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
+                free(samples[i].data);
+            }
+        }
+        //USerial.println("[OK]");
+        delete[] samples;
+    }
+
     bool ReadSampleDataFromFile(instrument_data_temp &inst)
     {
         File file = SD.open(SF2::filePath.c_str());
         if (!file) {USerial.println("cannot open file"); return false;}
         if (samples != nullptr) {
-            for (int i = 0;i<sample_count;i++)
-            {
-                delete[] samples[i].data;
-            }
-            delete[] samples;
+            FreePrevSampleData();
         } 
         samples = new sample_data[inst.sample_count];
         sample_count = inst.sample_count;
@@ -472,27 +482,47 @@ namespace SF2::lazy_reader
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
+            totalSize+=ary_length;
+            samples[si].data = nullptr; // clear the pointer so free above won't fail if prev. load was unsuccessful
+        }
+        USerial.print("\ntotal size in bytes of current instrument samples inclusive padding: "); USerial.println(totalSize*4);
+        int allocatedSize = 0;
+        for (int si=0;si<inst.sample_count;si++)
+        {
+            //USerial.print("reading sample: "); USerial.println(si);
+            int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
+            int length_8 = length_32*4;
+            int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
+            int ary_length = length_32 + pad_length;
             
-            samples[si].data = new uint32_t[ary_length];
-            totalSize += ary_length;
-            //USerial.println("try seek  ");
-            file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2);
-            //USerial.println("seek complete ");
-            int i = 0;
-            for (i=0;i<length_32;i++)
-            {
-                //USerial.println(".");
-                file.read(&samples[si].data[i], 4);
+            samples[si].data = (uint32_t*)malloc(ary_length*4);
+            if (samples[si].data == nullptr) {
+                lastError = "@ sample " + String(si) + "Not enough memory to allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSize*4) + " bytes";
+                file.close();
+                FreePrevSampleData();
+                return false;
             }
-            
-            while (i < ary_length)
+
+            if (file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2) == false) {
+                lastError = "@ sample " +  String(si) + " could not seek to data location in file";
+                file.close();
+                FreePrevSampleData();
+                return false;
+            }
+            if (lastReadCount = file.readBytes((char*)samples[si].data, length_8) != length_8) {
+                lastError = "@ sample " +  String(si) + " could not read sample data from file, wanted:" + length_8 + " but could only read " + lastReadCount;
+                file.close();
+                FreePrevSampleData();
+                return false;
+            }
+            for (int i = length_32; i < ary_length;i++)
             {
-                samples[si].data[i++] = 0x00000000;
-                //data[i++] = 0;
+                samples[si].data[i] = 0x00000000;
             }
             inst.samples[si].sample = (int16_t*)samples[si].data;
+            allocatedSize+=ary_length;
         }
-        USerial.print("\ntotal size in bytes of all loaded samples inclusive padding: "); USerial.println(totalSize*4);
+        
         file.close();
         return true;
     }
