@@ -13,14 +13,17 @@ namespace SF2
     uint32_t fileSize;
     String filePath;
 
+
     String lastError; // TODO: change string lastError into a enum
     uint64_t lastErrorPosition;
     size_t lastReadCount = 0; // used to track errors
     #define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-    int sample_count = 0;
+
+    
     // TODO make all samples load into a single array for easier allocation / deallocation
     // also maybe have it as a own contained memory pool
     sample_data *samples;
+    int sample_count = 0;
 
     bool ReadStringUsingLeadingSize(File &file, String& string)
     {

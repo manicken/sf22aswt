@@ -345,5 +345,57 @@ namespace SF2
         absoluteValue = 2
     };
 
-    
+	enum class ErrorType : uint16_t
+	{
+		READ = 0x0001,
+		INVALID = 0x0002,
+		FORMAT = 0x0003,
+		MISMATCH = 0x0004
+	};
+	enum class ErrorLocationA : uint16_t
+	{
+		FILE = 0x0000,
+		ROOT_CHUNK = 0x0100,
+		LIST_CHUNK = 0x0200,
+	};
+	enum class ErrorLocationB : uint16_t
+	{
+		TAG = 0x1000,
+		SIZE = 0x2000,
+		FORMAT = 0x3000,
+	};
+    #define ERROR(TYPE, LOC_A, LOC_B) (uint16_t)ErrorType::TYPE + (uint16_t)ErrorLocationA::LOC_A + (uint16_t)ErrorLocationB::LOC_B;
+	void function()
+	{
+		uint16_t error = ERROR(READ, ROOT_CHUNK, SIZE)
+	}
+    /**
+     * description of the different errors:
+     * * READ_ERROR (xx01) - required data bytes could not be read from file, 
+     *                probably because of file corruption
+     * * INVALID_ERROR (xx02) - FourCC did contain non alphanumeric characters
+     * * FORMAT_ERROR (xx03) - FourCC do not match the expected string
+    */
+    enum class FileError : uint16_t
+    {
+        NONE = 0x0000,
+        FILE_NOT_FOUND      = 0x0001,
+        READ_FILETAG        = 0x0101, // read error - fileTag
+        INVALID_FILETAG     = 0x0102, // RIFF tag invalid
+        FORMAT_FILETAG      = 0x0103, // not a RIFF fileformat
+        READ_RIFF_SIZE      = 0x0201, // read error - riff size
+        MISMATCH_RIFF_SIZE  = 0x0204, // riff size do not match expected filesize
+        READ_FILE_FORMAT    = 0x0301, // read error - fileformat
+        INVALID_FILE_FORMAT = 0x0302, // invalid - fileformat tag
+        FORMAT_FILE_FORMAT  = 0x0303, // not a sfbk fileformat
+        READ_LISTTAG        = 0x0401, // read error -  listTag
+        INVALID_LISTTAG     = 0x0402, // invalid - listTag
+        FORMAT_LISTTAG      = 0x0403, // listtag is not LIST
+        READ_LISTSIZE       = 0x0501, // read error - list size
+        READ_LISTTYPE       = 0x0601, // read error - list type
+        INVALID_LISTTYPE    = 0x0602, // invalid - list type
+        
+    };
+
+
 }

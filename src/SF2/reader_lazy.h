@@ -459,7 +459,7 @@ namespace SF2::lazy_reader
         {
             if (samples[i].data != nullptr) {
                 //USerial.println("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
-                free(samples[i].data);
+                extmem_free(samples[i].data);
             }
         }
         //USerial.println("[OK]");
@@ -495,7 +495,7 @@ namespace SF2::lazy_reader
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             
-            samples[si].data = (uint32_t*)malloc(ary_length*4);
+            samples[si].data = (uint32_t*)extmem_malloc(ary_length*4);
             if (samples[si].data == nullptr) {
                 lastError = "@ sample " + String(si) + "Not enough memory to allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSize*4) + " bytes";
                 file.close();
