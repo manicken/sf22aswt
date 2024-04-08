@@ -345,30 +345,40 @@ namespace SF2
         absoluteValue = 2
     };
 
-	enum class ErrorType : uint16_t
+	
+
+
+}
+
+namespace SF2::Error
+{
+    enum class Type : uint16_t
 	{
-		READ = 0x0001,
-		INVALID = 0x0002,
-		FORMAT = 0x0003,
-		MISMATCH = 0x0004
+		READ = 1,
+		INVALID = 2,
+		MISMATCH = 3
 	};
-	enum class ErrorLocationA : uint16_t
+	enum class LocationA : uint16_t
 	{
-		FILE = 0x0000,
-		ROOT_CHUNK = 0x0100,
-		LIST_CHUNK = 0x0200,
+		FILE = 1,
+		RIFF = 2,
+		LIST = 3,
+        LISTTYPE = 4,
 	};
-	enum class ErrorLocationB : uint16_t
+	enum class LocationB : uint16_t
 	{
-		TAG = 0x1000,
-		SIZE = 0x2000,
-		FORMAT = 0x3000,
+		FOURCC = 1,
+		SIZE = 2,
+		FORMAT = 3,
 	};
-    #define ERROR(TYPE, LOC_A, LOC_B) (uint16_t)ErrorType::TYPE + (uint16_t)ErrorLocationA::LOC_A + (uint16_t)ErrorLocationB::LOC_B;
-	void function()
-	{
-		uint16_t error = ERROR(READ, ROOT_CHUNK, SIZE)
-	}
+    #define ERROR(LOC_A, LOC_B, TYPE) ((uint16_t)SF2::Error::Type::TYPE + \
+                                    ((uint16_t)SF2::Error::LocationB::LOC_B << 4) + \
+                                    ((uint16_t)SF2::Error::LocationA::LOC_A << 8))
+    
+}
+
+namespace SF2::Error::Test
+{
     /**
      * description of the different errors:
      * * READ_ERROR (xx01) - required data bytes could not be read from file, 
@@ -378,24 +388,28 @@ namespace SF2
     */
     enum class FileError : uint16_t
     {
-        NONE = 0x0000,
-        FILE_NOT_FOUND      = 0x0001,
-        READ_FILETAG        = 0x0101, // read error - fileTag
-        INVALID_FILETAG     = 0x0102, // RIFF tag invalid
-        FORMAT_FILETAG      = 0x0103, // not a RIFF fileformat
-        READ_RIFF_SIZE      = 0x0201, // read error - riff size
-        MISMATCH_RIFF_SIZE  = 0x0204, // riff size do not match expected filesize
-        READ_FILE_FORMAT    = 0x0301, // read error - fileformat
-        INVALID_FILE_FORMAT = 0x0302, // invalid - fileformat tag
-        FORMAT_FILE_FORMAT  = 0x0303, // not a sfbk fileformat
-        READ_LISTTAG        = 0x0401, // read error -  listTag
-        INVALID_LISTTAG     = 0x0402, // invalid - listTag
-        FORMAT_LISTTAG      = 0x0403, // listtag is not LIST
-        READ_LISTSIZE       = 0x0501, // read error - list size
-        READ_LISTTYPE       = 0x0601, // read error - list type
-        INVALID_LISTTYPE    = 0x0602, // invalid - list type
+        NONE                    = 0x0000, // no error
+        FILE_NOT_FOUND          = 0x0001, // file could not be opened
+        FILE_FOURCC_READ        = ERROR(FILE, FOURCC, READ),     // read error - RIFF fileTag
+        FILE_FOURCC_INVALID     = ERROR(FILE, FOURCC, INVALID),  // RIFF tag invalid
+        FILE_FOURCC_MISMATCH    = ERROR(FILE, FOURCC, MISMATCH), // not a RIFF fileformat
+        RIFF_SIZE_READ          = ERROR(RIFF, SIZE, READ), // read error - riff size
+        RIFF_SIZE_MISMATCH      = ERROR(RIFF, SIZE, MISMATCH), // riff size do not match expected filesize
+        RIFF_FOURCC_READ        = ERROR(RIFF, FOURCC, READ), // read error - RIFF fileformat
+        RIFF_FOURCC_INVALID     = ERROR(RIFF, FOURCC, INVALID), // invalid - RIFF fileformat tag
+        RIFF_FOURCC_MISMATCH    = ERROR(RIFF, FOURCC, MISMATCH), // not a sfbk fileformat
+        LIST_FOURCC_READ        = ERROR(LIST, FOURCC, READ), // read error -  listTag
+        LIST_FOURCC_INVALID     = ERROR(LIST, FOURCC, INVALID), // invalid - listTag
+        LIST_FOURCC_MISMATCH    = ERROR(LIST, FOURCC, MISMATCH), // listtag is not LIST
+        LIST_SIZE_READ          = ERROR(LIST, SIZE, READ), // read error - list size
+        LISTTYPE_FOURCC_READ    = ERROR(LISTTYPE, FOURCC, READ), // read error - list type
+        LISTTYPE_FOURCC_INVALID = ERROR(LISTTYPE, FOURCC, MISMATCH), // invalid - list type
         
     };
 
-
-}
+    void foo()
+    {
+        FileError fe = FileError::LISTTYPE_FOURCC_INVALID;
+    }
+    
+} // namespace SF2::Error::Test
