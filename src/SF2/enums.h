@@ -352,24 +352,36 @@ namespace SF2
 
 namespace SF2::Error
 {
-    enum class Type : uint16_t
+    enum class Type
 	{
+        /** required data bytes could not be read from file, 
+         * probably because of file corruption */
 		READ = 1,
+        /** FourCC did contain non alphanumeric characters */
 		INVALID = 2,
-		MISMATCH = 3
+        /** FourCC/Size do not match the expected value */
+		MISMATCH = 3,
+        /** file seek error */
+        SEEK = 4,
 	};
-	enum class LocationA : uint16_t
+	enum class LocationA
 	{
 		FILE = 1,
 		RIFF = 2,
 		LIST = 3,
         LISTTYPE = 4,
+        INFO = 0x05,
+        SDTA = 0x06,
+        SDTA_SMPL = 0x16,
+        SDTA_SM24 = 0x26,
+        PDTA = 7,
 	};
-	enum class LocationB : uint16_t
+	enum class LocationB
 	{
 		FOURCC = 1,
 		SIZE = 2,
-		FORMAT = 3,
+        UNKNOWN_BLOCK_SIZE = 3,
+        UNKNOWN_BLOCK = 4,
 	};
     #define ERROR(LOC_A, LOC_B, TYPE) ((uint16_t)SF2::Error::Type::TYPE + \
                                     ((uint16_t)SF2::Error::LocationB::LOC_B << 4) + \
@@ -381,10 +393,9 @@ namespace SF2::Error::Test
 {
     /**
      * description of the different errors:
-     * * READ_ERROR (xx01) - required data bytes could not be read from file, 
-     *                probably because of file corruption
-     * * INVALID_ERROR (xx02) - FourCC did contain non alphanumeric characters
-     * * FORMAT_ERROR (xx03) - FourCC do not match the expected string
+     * * READ_ERROR (xx01) - 
+     * * INVALID_ERROR (xx02) - 
+     * * FORMAT_ERROR (xx03) - 
     */
     enum class FileError : uint16_t
     {
