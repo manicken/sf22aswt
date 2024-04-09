@@ -106,9 +106,9 @@ namespace SF2::lazy_reader
         char fourCC[4];
         while (file.available())
         {
-            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting infoblock type")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting sdtablock type")
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
-            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - infoblock type invalid")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - sdtablock type invalid")
             
             if (strncmp(fourCC, "smpl", 4) == 0)
             {
@@ -150,10 +150,12 @@ namespace SF2::lazy_reader
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - pdta type invalid")
 
-            if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting pdta block size")
+            // store result for easier pinpoint of error handing
+            bool sizeReadFail = ((lastReadCount = file.read(&size, 4)) != 4);
 
             if (strncmp(fourCC, "phdr", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta phdr block size")
                 if (size % phdr_rec::Size != 0) FILE_ERROR("error - pdta phdr block size mismatch")
 
                 sfbk->pdta.phdr_count = size/phdr_rec::Size;
@@ -162,6 +164,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "pbag", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pbag block size")
                 if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta pbag block size mismatch")
 
                 sfbk->pdta.pbag_count = size/bag_rec::Size;
@@ -170,6 +173,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "pmod", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pmod block size")
                 if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta pmod block size mismatch")
 
                 sfbk->pdta.pmod_count = size/mod_rec::Size;
@@ -178,6 +182,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "pgen", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pgen block size")
                 if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta pgen block size mismatch")
 
                 sfbk->pdta.pgen_count = size/gen_rec::Size;
@@ -186,6 +191,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "inst", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta inst block size")
                 if (size % inst_rec::Size != 0) FILE_ERROR("error - pdta inst block size mismatch")
 
                 sfbk->pdta.inst_count = size/inst_rec::Size;
@@ -194,6 +200,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "ibag", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta ibag block size")
                 if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta ibag block size mismatch")
 
                 sfbk->pdta.ibag_count = size/bag_rec::Size;
@@ -202,6 +209,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "imod", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta imod block size")
                 if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta imod block size mismatch")
 
                 sfbk->pdta.imod_count = size/mod_rec::Size;
@@ -210,6 +218,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "igen", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta igen block size")
                 if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta igen block size mismatch")
 
                 sfbk->pdta.igen_count = size/gen_rec::Size;
@@ -218,6 +227,7 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "shdr", 4) == 0)
             {
+                if (sizeReadFail) FILE_ERROR("read error - while getting pdta shdr block size")
                 if (size % shdr_rec::Size != 0) FILE_ERROR("error - pdta shdr block size mismatch")
 
                 sfbk->pdta.shdr_count = size/shdr_rec::Size;
@@ -226,12 +236,14 @@ namespace SF2::lazy_reader
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
-                file.seek(-4, SeekCur); // skip back
+                
+                file.seek(-8, SeekCur); // skip back
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
+                if (sizeReadFail) FILE_ERROR("read error - while getting unknown block size")
                 if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
             }
         }

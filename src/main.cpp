@@ -11,6 +11,7 @@
 #include "SF2/helpers.h"
 #include "SF2/common.h"
 #include "SF2/converter.h"
+#include "SF2/error_enums.h"
 
 #include "ExtMemTest.h"
 
@@ -169,6 +170,8 @@ void setup()
     //waveform.begin(0, 50, WAVEFORM_SQUARE);
     outputCtrl.enable();
         outputCtrl.volume(0.3f);
+
+    
 }
 long lastMs = 0;
 void loop()
@@ -204,7 +207,11 @@ void processSerialCommand()
         long endTime = micros();
         USerial.print("list files took: ");
         USerial.print(endTime-startTime);
-        USerial.println(" microseconds");
+        USerial.print(" microseconds\n");
+
+        SF2::Error::Test::ExecTest();
+        //USerial.print(SF2::Error::errorStringList[0]); USerial.print("\n");
+        //USerial.print(SF2::Error::errorStringList[1]); USerial.print("\n");
     }
     else if (strncmp(serialRxBuffer, "read_file:", 10) == 0)
     {

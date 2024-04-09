@@ -1,11 +1,11 @@
-#include <Arduino.h>
-
 /**
  * this file contains the enums used
  * note. it's only SFGenerator, SFSampleLink & SFSampleMode
  * that is currently used for the reader
 */
 #pragma once
+
+#include <Arduino.h>
 
 namespace SF2
 {
@@ -349,78 +349,3 @@ namespace SF2
 
 
 }
-
-namespace SF2::Error
-{
-    enum class Type
-	{
-        /** required data bytes could not be read from file, 
-         * probably because of file corruption */
-		READ = 1,
-        /** FourCC did contain non alphanumeric characters */
-		INVALID = 2,
-        /** FourCC/Size do not match the expected value */
-		MISMATCH = 3,
-        /** file seek error */
-        SEEK = 4,
-	};
-	enum class LocationA
-	{
-		FILE = 1,
-		RIFF = 2,
-		LIST = 3,
-        LISTTYPE = 4,
-        INFO = 0x05,
-        SDTA = 0x06,
-        SDTA_SMPL = 0x16,
-        SDTA_SM24 = 0x26,
-        PDTA = 7,
-	};
-	enum class LocationB
-	{
-		FOURCC = 1,
-		SIZE = 2,
-        UNKNOWN_BLOCK_SIZE = 3,
-        UNKNOWN_BLOCK = 4,
-	};
-    #define ERROR(LOC_A, LOC_B, TYPE) ((uint16_t)SF2::Error::Type::TYPE + \
-                                    ((uint16_t)SF2::Error::LocationB::LOC_B << 4) + \
-                                    ((uint16_t)SF2::Error::LocationA::LOC_A << 8))
-    
-}
-
-namespace SF2::Error::Test
-{
-    /**
-     * description of the different errors:
-     * * READ_ERROR (xx01) - 
-     * * INVALID_ERROR (xx02) - 
-     * * FORMAT_ERROR (xx03) - 
-    */
-    enum class FileError : uint16_t
-    {
-        NONE                    = 0x0000, // no error
-        FILE_NOT_FOUND          = 0x0001, // file could not be opened
-        FILE_FOURCC_READ        = ERROR(FILE, FOURCC, READ),     // read error - RIFF fileTag
-        FILE_FOURCC_INVALID     = ERROR(FILE, FOURCC, INVALID),  // RIFF tag invalid
-        FILE_FOURCC_MISMATCH    = ERROR(FILE, FOURCC, MISMATCH), // not a RIFF fileformat
-        RIFF_SIZE_READ          = ERROR(RIFF, SIZE, READ), // read error - riff size
-        RIFF_SIZE_MISMATCH      = ERROR(RIFF, SIZE, MISMATCH), // riff size do not match expected filesize
-        RIFF_FOURCC_READ        = ERROR(RIFF, FOURCC, READ), // read error - RIFF fileformat
-        RIFF_FOURCC_INVALID     = ERROR(RIFF, FOURCC, INVALID), // invalid - RIFF fileformat tag
-        RIFF_FOURCC_MISMATCH    = ERROR(RIFF, FOURCC, MISMATCH), // not a sfbk fileformat
-        LIST_FOURCC_READ        = ERROR(LIST, FOURCC, READ), // read error -  listTag
-        LIST_FOURCC_INVALID     = ERROR(LIST, FOURCC, INVALID), // invalid - listTag
-        LIST_FOURCC_MISMATCH    = ERROR(LIST, FOURCC, MISMATCH), // listtag is not LIST
-        LIST_SIZE_READ          = ERROR(LIST, SIZE, READ), // read error - list size
-        LISTTYPE_FOURCC_READ    = ERROR(LISTTYPE, FOURCC, READ), // read error - list type
-        LISTTYPE_FOURCC_INVALID = ERROR(LISTTYPE, FOURCC, MISMATCH), // invalid - list type
-        
-    };
-
-    void foo()
-    {
-        FileError fe = FileError::LISTTYPE_FOURCC_INVALID;
-    }
-    
-} // namespace SF2::Error::Test
