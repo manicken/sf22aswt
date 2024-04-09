@@ -83,7 +83,7 @@ namespace ExtMemTest
         if (!check_fixed_pattern(0xFFFFFFFF)) return false; // 56
         if (!check_fixed_pattern(0x00000000)) return false; // 57
         USerial.printf(" test ran for %.2f seconds\n", (float)msec / 1000.0f);
-        USerial.println("All memory tests passed :-)");
+        USerial.print("All memory tests passed :-)\n");
         memory_ok = true;
     }
 

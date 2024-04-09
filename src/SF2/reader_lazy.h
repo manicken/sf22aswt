@@ -58,7 +58,7 @@ namespace SF2::lazy_reader
             if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading listType")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.println(listSize);
+            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.print(listSize);  USerial.print("\n");
             if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid listType")
             
             
@@ -333,7 +333,7 @@ namespace SF2::lazy_reader
     bool get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
     {
         SF2GeneratorAmount genVal;
-        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ /*USerial.println("could not get samplemode");*/ return defaultValue; }
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ /*USerial.print("could not get samplemode\n");*/ return defaultValue; }
         
         return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
     }
@@ -378,18 +378,18 @@ namespace SF2::lazy_reader
         uint16_t igen_ndxs[ibag_count+1]; // +1 because of the soundfont structure 
         uint16_t dummy = 0;
         USerial.print("\nibag_start index: "); USerial.print(ibag_startIndex);
-        USerial.print(", ibag_end index: "); USerial.println(ibag_endIndex);
-        USerial.println(" ");
-        if (file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex) == false) {USerial.println("seek error to ibags"); file.close(); return false;}
-        USerial.println("seek complete");
+        USerial.print(", ibag_end index: "); USerial.print(ibag_endIndex);  USerial.print("\n");
+        USerial.print("\n");
+        if (file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex) == false) {USerial.print("seek error to ibags\n"); file.close(); return false;}
+        USerial.print("seek complete\n");
         for (int i=0;i<ibag_count+1;i++)
         {
-            if (file.read(&igen_ndxs[i], 2) != 2) {USerial.println("read error - while reading &igen_ndxs[i]"); file.close(); return false;}
-            if (file.read(&dummy, 2) != 2) {USerial.println("read error - while reading dummy"); file.close(); return false;}; // imod not used
+            if (file.read(&igen_ndxs[i], 2) != 2) {USerial.print("read error - while reading &igen_ndxs[i]\n"); file.close(); return false;}
+            if (file.read(&dummy, 2) != 2) {USerial.print("read error - while reading dummy\n"); file.close(); return false;}; // imod not used
             USerial.print(igen_ndxs[i]);
             USerial.print(", ");
         }
-        USerial.println();
+        USerial.print("\n");
         // store gen data in bags for faster access
         bag_of_gens bags[ibag_count];
         for (int i=0;i<ibag_count;i++)
@@ -399,26 +399,26 @@ namespace SF2::lazy_reader
             uint16_t count = end-start;
             bags[i].items = new gen_rec[count];
             bags[i].count = count;
-            if (file.seek(sfbk->pdta.igen_position + start*gen_rec::Size) == false) {USerial.println("seek error to igen"); file.close(); return false;};
+            if (file.seek(sfbk->pdta.igen_position + start*gen_rec::Size) == false) {USerial.print("seek error to igen\n"); file.close(); return false;};
             for (int i2=0;i2<count;i2++)
             {
                 file.read(&bags[i].items[i2], gen_rec::Size);
             }
         }
-        USerial.println("temp storage in bags complete");
+        USerial.print("temp storage in bags complete\n");
         inst.sample_count = ibag_count - 1;
         inst.sample_note_ranges = new uint8_t[inst.sample_count];
         inst.samples = new sample_header_temp[inst.sample_count];
         for (int si=0;si<inst.sample_count;si++)
         {
             shdr_rec shdr;
-            //USerial.print("getting sample x: ");USerial.println(si);
+            //USerial.print("getting sample x: ");USerial.print(si); USerial.print("\n");
             if (get_sample_header(file, bags, si, &shdr) == false) { 
                 inst.samples[si].invalid = true;
-                USerial.print("error - while getting sample header @ "); USerial.println(si);
+                USerial.print("error - while getting sample header @ "); USerial.print(si); USerial.print("\n");
                 continue;
             }
-            //USerial.println("getting data");
+            //USerial.print("getting data\n");
             inst.sample_note_ranges[si] = get_key_range_end(bags, si);
             inst.samples[si].invalid = false; // used later as a failsafe when getting data
             inst.samples[si].sample_start = shdr.dwStart;
@@ -431,7 +431,7 @@ namespace SF2::lazy_reader
             inst.samples[si].LOOP_START = get_cooked_loop_start(bags, si, shdr);
             inst.samples[si].LOOP_END = get_cooked_loop_end(bags, si, shdr);
             inst.samples[si].INIT_ATTENUATION = get_decibel_value(bags, si, SFGenerator::initialAttenuation, 0, 0, 144) * -1;
-            //USerial.println("getting vol env");
+            //USerial.print("getting vol env\n");
             // VOLUME ENVELOPE VALUES
             inst.samples[si].DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVolEnv, 0, 0);
             inst.samples[si].ATTACK_ENV = get_timecents_value(bags, si, SFGenerator::attackVolEnv, 1, 1);
@@ -439,13 +439,13 @@ namespace SF2::lazy_reader
             inst.samples[si].DECAY_ENV = get_timecents_value(bags, si, SFGenerator::decayVolEnv, 1, 1);
             inst.samples[si].RELEASE_ENV = get_timecents_value(bags, si, SFGenerator::releaseVolEnv, 1, 1);
             inst.samples[si].SUSTAIN_FRAC = get_decibel_value(bags, si, SFGenerator::sustainVolEnv, 0, 0, 144) * -1;
-            //USerial.println("getting vib vals");
+            //USerial.print("getting vib vals\n");
             // VIRBRATO VALUES
             inst.samples[si].VIB_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVibLFO, 0, 0);
             inst.samples[si].VIB_INC_ENV = get_hertz(bags, si, SFGenerator::freqVibLFO, 8.176, 0.1, 100);
             inst.samples[si].VIB_PITCH_INIT = get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000);
             inst.samples[si].VIB_PITCH_SCND = inst.samples[si].VIB_PITCH_INIT * -1; //get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000) * -1;
-            //USerial.println("getting mod vals");
+            //USerial.print("getting mod vals\n");
             // MODULATION VALUES
             inst.samples[si].MOD_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayModLFO, 0, 0);
             inst.samples[si].MOD_INC_ENV = get_hertz(bags, si, SFGenerator::freqModLFO, 8.176, 0.1, 100);
@@ -459,29 +459,29 @@ namespace SF2::lazy_reader
         for (int i = 0; i < ibag_count; i++) {
             delete[] bags[i].items; // Deallocate memory for the array of pointers
         }
-        USerial.println("instrument load complete");
+        USerial.print("instrument load complete\n");
         file.close();
         return true;
     }
 
     void FreePrevSampleData()
     {
-        //USerial.println("try to free prev loaded sampledata");
+        //USerial.print("try to free prev loaded sampledata\n");
         for (int i = 0;i<sample_count;i++)
         {
             if (samples[i].data != nullptr) {
-                //USerial.println("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
+                //USerial.print("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data + "\n"));
                 extmem_free(samples[i].data);
             }
         }
-        //USerial.println("[OK]");
+        //USerial.print("[OK]\n");
         delete[] samples;
     }
 
     bool ReadSampleDataFromFile(instrument_data_temp &inst)
     {
         File file = SD.open(SF2::filePath.c_str());
-        if (!file) {USerial.println("cannot open file"); return false;}
+        if (!file) {USerial.print("cannot open file\n"); return false;}
         if (samples != nullptr) {
             FreePrevSampleData();
         } 
@@ -490,18 +490,18 @@ namespace SF2::lazy_reader
         int totalSize = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
-            //USerial.print("reading sample: "); USerial.println(si);
+            //USerial.print("reading sample: "); USerial.print(si); USerial.print("\n");
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             totalSize+=ary_length;
             samples[si].data = nullptr; // clear the pointer so free above won't fail if prev. load was unsuccessful
         }
-        USerial.print("\ntotal size in bytes of current instrument samples inclusive padding: "); USerial.println(totalSize*4);
+        USerial.print("\ntotal size in bytes of current instrument samples inclusive padding: "); USerial.print(totalSize*4);  USerial.print("\n");
         int allocatedSize = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
-            //USerial.print("reading sample: "); USerial.println(si);
+            //USerial.print("reading sample: "); USerial.print(si);  USerial.print("\n");
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int length_8 = length_32*4;
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);

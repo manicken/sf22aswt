@@ -48,11 +48,11 @@ namespace SF2
 
     bool readInfoBlock(File &file, INFO &info)
     {
-        //SerialUSB1.print("\navailable >>>"); SerialUSB1.println(file.available()); SerialUSB1.print("<<<\n");
+        //USerial.print("\navailable >>>"); USerial.print(file.available()); USerial.print("\n"); USerial.print("<<<\n");
         char fourCC[4];
         while (file.available() > 0)
         {
-            //DSerial.printf("\n  file position: %ld\n", file.position());
+            //USerial.printf("\n  file position: %ld\n", file.position());
             
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting infoblock type")
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");

@@ -98,7 +98,7 @@ void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     /*USerial.print("note on: ");
     USerial.print(note);
     USerial.print(", velocity: ");
-    USerial.println(velocity);*/
+    USerial.print(velocity); USerial.print("\n");*/
     //waveform.frequency(noteFreqs[note]);
     for (int i=0;i<VOICE_COUNT;i++){
         if (notes[i]==-1) {
@@ -114,7 +114,7 @@ void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
     /*USerial.print("note off: ");
     USerial.print(note);
     USerial.print(", velocity: ");
-    USerial.println(velocity);*/
+    USerial.print(velocity); USerial.print("\n");*/
     //waveform.amplitude(0);
     //if (sustainActive) return;
 
@@ -155,7 +155,7 @@ void setup()
     //Serial1.begin(115200);
     //Serial2.begin(115200);
     if (!SD.begin(BUILTIN_SDCARD)) {
-        USerial.println("SD initialization failed!");
+        USerial.print("SD initialization failed!\n");
     }
     else
     {
@@ -179,7 +179,7 @@ void loop()
     /*if ((millis() - lastMs) > 1000)
     {
         lastMs = millis();
-        SerialUSB1.println("SerialUSB1");
+        SerialUSB1.print("SerialUSB1\n");
     }*/
     ledBlinkTask();
     processSerialCommand();
@@ -209,13 +209,11 @@ void processSerialCommand()
         USerial.print(endTime-startTime);
         USerial.print(" microseconds\n");
 
-        SF2::Error::Test::ExecTest();
-        //USerial.print(SF2::Error::errorStringList[0]); USerial.print("\n");
-        //USerial.print(SF2::Error::errorStringList[1]); USerial.print("\n");
+        
     }
     else if (strncmp(serialRxBuffer, "read_file:", 10) == 0)
     {
-        if (bytesRead <= 11) { USerial.println("read_file path parameter missing"); return; }
+        if (bytesRead <= 11) { USerial.print("read_file path parameter missing\n"); return; }
         
         long startTime = micros();
         if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)
@@ -224,7 +222,7 @@ void processSerialCommand()
             USerial.print(" @ position: ");
             USerial.print(SF2::lastErrorPosition);
             USerial.print(", lastReadCount: ");
-            USerial.println(SF2::lastReadCount);
+            USerial.print(SF2::lastReadCount); USerial.print("\n");
             return;
             // TODO. open and print a part of file contents if possible
             // using lastReadCount and position plus reading some bytes extra backwards
@@ -232,8 +230,8 @@ void processSerialCommand()
         long endTime = micros();
         USerial.print("open file took: ");
         USerial.print(endTime-startTime);
-        USerial.println(" microseconds");
-        USerial.println("json:{'cmd':'file_loaded'}");
+        USerial.print(" microseconds\n");
+        USerial.print("json:{'cmd':'file_loaded'}\n");
     }
     else if (strncmp(serialRxBuffer, "print_info", 10) == 0)
     {
@@ -241,24 +239,24 @@ void processSerialCommand()
         USerial.print(", sfbk size: "); USerial.print(SF2reader::sfbk->size);
         USerial.print(", info size: "); USerial.print(SF2reader::sfbk->info_size);
         USerial.print(", sdta size:"); USerial.print(SF2reader::sfbk->sdta.size);
-        USerial.print(", pdta size: "); USerial.println(SF2reader::sfbk->pdta.size);
+        USerial.print(", pdta size: "); USerial.print(SF2reader::sfbk->pdta.size); USerial.print("\n");
 
-        USerial.print("inst pos: "); USerial.print(SF2reader::sfbk->pdta.inst_position); USerial.print(", inst count: "); USerial.println(SF2reader::sfbk->pdta.inst_count);
-        USerial.print("ibag pos: "); USerial.print(SF2reader::sfbk->pdta.ibag_position); USerial.print(", ibag count: "); USerial.println(SF2reader::sfbk->pdta.ibag_count);
-        USerial.print("igen pos: "); USerial.print(SF2reader::sfbk->pdta.igen_position); USerial.print(", igen count: "); USerial.println(SF2reader::sfbk->pdta.igen_count);
-        USerial.print("shdr pos: "); USerial.print(SF2reader::sfbk->pdta.shdr_position); USerial.print(", shdr count: "); USerial.println(SF2reader::sfbk->pdta.shdr_count);
+        USerial.print("inst pos: "); USerial.print(SF2reader::sfbk->pdta.inst_position); USerial.print(", inst count: "); USerial.print(SF2reader::sfbk->pdta.inst_count); USerial.print("\n");
+        USerial.print("ibag pos: "); USerial.print(SF2reader::sfbk->pdta.ibag_position); USerial.print(", ibag count: "); USerial.print(SF2reader::sfbk->pdta.ibag_count); USerial.print("\n");
+        USerial.print("igen pos: "); USerial.print(SF2reader::sfbk->pdta.igen_position); USerial.print(", igen count: "); USerial.print(SF2reader::sfbk->pdta.igen_count); USerial.print("\n");
+        USerial.print("shdr pos: "); USerial.print(SF2reader::sfbk->pdta.shdr_position); USerial.print(", shdr count: "); USerial.print(SF2reader::sfbk->pdta.shdr_count); USerial.print("\n");
 
         SF2::INFO info;
         File file = SD.open(SF2::filePath.c_str());
         file.seek(SF2reader::sfbk->info_position);
         SF2::readInfoBlock(file, info);
         file.close();
-        USerial.println(info.ToString());
+        USerial.print(info.ToString()); USerial.print("\n");
     }
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
         long startTime = micros();
-        if (SF2reader::lastReadWasOK == false) { USerial.println("file not open or last read was not ok"); return; }
+        if (SF2reader::lastReadWasOK == false) { USerial.print("file not open or last read was not ok\n"); return; }
 
         USerial.print("json:{\"instruments\":[");//, SF2reader::sfbk->pdta.inst_count);
         File file = SD.open(SF2::filePath.c_str());
@@ -282,86 +280,91 @@ void processSerialCommand()
         long endTime = micros();
         USerial.print("list instruments took: ");
         USerial.print(endTime-startTime);
-        USerial.println(" microseconds");
+        USerial.print(" microseconds\n");
         
     }
     else if (strncmp(serialRxBuffer, "load_instrument:", 16) == 0)
     {
-        if (bytesRead <= 16) { USerial.println(&serialRxBuffer[16]); USerial.println("load_instrument index parameter missing"); return; }
+        if (bytesRead <= 16) { USerial.print(&serialRxBuffer[16]); USerial.print("\nload_instrument index parameter missing\n"); return; }
         char* endptr;
         uint index = std::strtoul(&serialRxBuffer[16], &endptr, 10);
-        if (&serialRxBuffer[16] == endptr) { USerial.println("load_instrument index parameter don't start with digit"); return; }
-        else if (*endptr != '\0') { USerial.println("load_instrument index parameter non integer characters detected"); return; }
+        if (&serialRxBuffer[16] == endptr) { USerial.print("load_instrument index parameter don't start with digit\n"); return; }
+        else if (*endptr != '\0') { USerial.print("load_instrument index parameter non integer characters detected\n"); return; }
 
         long startTime = micros();
-        //if (doc.containsKey("index") == false) {USerial.println("load_instrument index parameter missing");}
+        //if (doc.containsKey("index") == false) {USerial.print("load_instrument index parameter missing\n");}
         //int index = doc["index"];
         SF2::instrument_data_temp inst_temp = {0,0,nullptr};
         
         if (SF2reader::load_instrument(index, inst_temp) == false)
         {
-            USerial.println(SF2::lastError);
+            USerial.print(SF2::lastError); USerial.print("\n");
             return;
         }
 
-        //USerial.println(inst_temp.ToString());
+        //USerial.print(inst_temp.ToString());  USerial.print("\n");
 
-        USerial.print("\nsample count: "); USerial.println(inst_temp.sample_count);
+        USerial.print("\nsample count: "); USerial.print(inst_temp.sample_count);  USerial.print("\n");
         long endTime = micros();
         USerial.print("\nload instrument configuration took: ");
         USerial.print(endTime-startTime);
-        USerial.println(" microseconds");
+        USerial.print(" microseconds\n");
         
 
-        USerial.println("Start to load sample data from file");
+        USerial.print("Start to load sample data from file\n");
         startTime = micros();
         SF2::instrument_data inst_final;
         if (SF2::lazy_reader::ReadSampleDataFromFile(inst_temp) == false)
         {
-            USerial.println(SF2::lastError);
+            USerial.print(SF2::lastError); USerial.print("\n");
             return;
         }
         SF2::converter::toFinal(inst_temp, inst_final);
         endTime = micros();
         USerial.print("\nload instrument sample data took: ");
         USerial.print(endTime-startTime);
-        USerial.println(" microseconds");
+        USerial.print(" microseconds\n");
 
         AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
         SetInstrument(wt_inst);
 
-        USerial.println("json:{'cmd':'instrument_loaded'}");
+        USerial.print("json:{'cmd':'instrument_loaded'}\n");
     }
     else if (strncmp(serialRxBuffer, "exec_ext_mem_test", 17) == 0)
     {
         if (ExtMemTest::exec() == false)
         {
-            USerial.println("Ext memory fail");
+            USerial.print("Ext memory fail\n");
         }
+    }
+    else if (strncmp(serialRxBuffer, "print_all_errors", 16) == 0)
+    {
+        SF2::Error::Test::ExecTest();
     }
     else if (strncmp(serialRxBuffer, "ping", 4) == 0)
     {
-        USerial.println("pong");
+        USerial.print("pong\n");
     }
     else
     {
-        USerial.print("info - command not found:'"); USerial.println(serialRxBuffer);
+        USerial.print("info - command not found:'"); USerial.print(serialRxBuffer); USerial.print("\n");
     }
 }
 
 void listFiles(const char *dirname) {
     File root = SD.open(dirname, FILE_READ);
     if (!root) {
-        USerial.println("warning - cannot open directory");
-        USerial.println(dirname);
+        USerial.print("warning - cannot open directory:");
+        USerial.print(dirname);
+        USerial.print("\n");
         return;
     }
     if (!root.isDirectory()) {
-        USerial.println("warning - Not a directory");
+        USerial.print("warning - Not a directory\n");
         return;
     }
 
-    //DSerial.println("Files found in root directory:");
+    //DSerial.print("Files found in root directory:\n");
     USerial.print("json:{'files':[");
 
     while (true) {
