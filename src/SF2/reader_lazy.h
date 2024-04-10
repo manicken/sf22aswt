@@ -253,14 +253,18 @@ namespace SF2::lazy_reader
 
     bool get_gen_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
     {
-        uint16_t sampleGenCount = bags[sampleIndex+1].count;
+        bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;
+        int bagIndex = globalExists?(sampleIndex+1):sampleIndex;
+
+        uint16_t sampleGenCount = bags[bagIndex].count;
         for (int i=0;i<sampleGenCount;i++)
         {
-            if (bags[sampleIndex+1].items[i].sfGenOper == genType) {
-                *amount = bags[sampleIndex+1].items[i].genAmount;
+            if (bags[bagIndex].items[i].sfGenOper == genType) {
+                *amount = bags[bagIndex].items[i].genAmount;
                 return true;
             }
         }
+        if (globalExists == false) return false;
         // try again with global bag
         uint16_t globalGenCount = bags[0].count;
         for (int i = 0; i < globalGenCount; i++)
@@ -388,7 +392,7 @@ namespace SF2::lazy_reader
         USerial.print(", ibag_end index: "); USerial.print(ibag_endIndex);  USerial.print("\n");
         USerial.print("\n");
         if (file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex) == false) {USerial.print("seek error to ibags\n"); file.close(); return false;}
-        USerial.print("seek complete\n");
+        USerial.print("igen_ndxs: ");
         for (int i=0;i<ibag_count+1;i++)
         {
             if (file.read(&igen_ndxs[i], 2) != 2) {USerial.print("read error - while reading &igen_ndxs[i]\n"); file.close(); return false;}
@@ -399,6 +403,10 @@ namespace SF2::lazy_reader
         USerial.print("\n");
         // store gen data in bags for faster access
         bag_of_gens bags[ibag_count];
+
+        // search to the location for the first igen record
+        if (file.seek(sfbk->pdta.igen_position + igen_ndxs[0]*gen_rec::Size) == false) {USerial.print("seek error to first igen record\n"); file.close(); return false;};
+            
         for (int i=0;i<ibag_count;i++)
         {
             uint16_t start = igen_ndxs[i];
@@ -406,16 +414,37 @@ namespace SF2::lazy_reader
             uint16_t count = end-start;
             bags[i].items = new gen_rec[count];
             bags[i].count = count;
-            if (file.seek(sfbk->pdta.igen_position + start*gen_rec::Size) == false) {USerial.print("seek error to igen\n"); file.close(); return false;};
+
+            file.read(bags[i].items, gen_rec::Size*count); // TODO need error check
+            /* 
+            // only to check if above did work
+            USerial.print("bag contents:\n");
             for (int i2=0;i2<count;i2++)
             {
-                file.read(&bags[i].items[i2], gen_rec::Size);
-            }
+                // maybe this can be improved without using the for loop
+                //file.read(&bags[i].items[i2], gen_rec::Size); // TODO need error check
+                USerial.print("  sfGenOper:");
+                USerial.print((uint16_t)bags[i].items[i2].sfGenOper);
+                USerial.print(", value:");
+                USerial.println(bags[i].items[i2].genAmount.UAmount);
+            }*/
+            
         }
         USerial.print("temp storage in bags complete\n");
-        inst.sample_count = ibag_count - 1;
+
+        // TODO
+        // this is not actually true as i found one sf file without any global bag
+        // need to investigate the spec.
+        // according to the spec.
+        // if the first zone ends with a sampleID gen type then there is not any global zone for that instrument
+        //if (bags[0].count == 0) return false; // failsafe for using: bags[0].lastItem()
+        bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;
+
+        inst.sample_count = globalExists?(ibag_count - 1):ibag_count;
+
         inst.sample_note_ranges = new uint8_t[inst.sample_count];
         inst.samples = new sample_header_temp[inst.sample_count];
+        USerial.print("\nsample count: "); USerial.println(inst.sample_count);
         for (int si=0;si<inst.sample_count;si++)
         {
             shdr_rec shdr;
@@ -425,6 +454,10 @@ namespace SF2::lazy_reader
                 USerial.print("error - while getting sample header @ "); USerial.print(si); USerial.print("\n");
                 continue;
             }
+            USerial.print("sample name: ");
+            Helpers::printRawBytes(shdr.achSampleName, 20);
+            //USerial.write(shdr.achSampleName, 20);
+            USerial.println();
             //USerial.print("getting data\n");
             inst.sample_note_ranges[si] = get_key_range_end(bags, si);
             inst.samples[si].invalid = false; // used later as a failsafe when getting data

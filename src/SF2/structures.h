@@ -401,8 +401,13 @@ namespace SF2
     class bag_of_gens
     {
       public:
+        /** item count */
         uint16_t count = 0;
         gen_rec* items;
+        gen_rec lastItem()
+        {
+          return items[count-1];
+        }
     };
 
     class inst_rec

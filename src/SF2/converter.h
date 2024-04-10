@@ -28,16 +28,19 @@ namespace SF2::converter
     AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data_temp &data)
     {
         SF2::sample_header *samples = new sample_header[data.sample_count];
+        uint8_t *note_ranges = new uint8_t[data.sample_count];
         for (int i=0;i<data.sample_count;i++)
         {
             samples[i] = data.samples[i].toFinal();
+            note_ranges[i] = data.sample_note_ranges[i];
         }
+        note_ranges[data.sample_count-1] = 127;
 
         const AudioSynthWavetable::sample_data *sample_data = reinterpret_cast<const AudioSynthWavetable::sample_data*>(samples);
 
         return {
             data.sample_count,
-            data.sample_note_ranges,
+            note_ranges,
             sample_data
         };
     }

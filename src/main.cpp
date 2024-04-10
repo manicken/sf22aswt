@@ -177,7 +177,7 @@ void setup()
 
     //waveform.begin(0, 50, WAVEFORM_SQUARE);
     outputCtrl.enable();
-        outputCtrl.volume(0.3f);
+        outputCtrl.volume(1.0f);
 
     
 }
