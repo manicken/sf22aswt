@@ -25,48 +25,49 @@ namespace SF2::lazy_reader
     bool ReadFile(const char * filePath)
     {
         lastReadWasOK = false;
+        clearErrors();
         if (sfbk == nullptr) sfbk = new sfbk_rec_lazy();
 
         File file = SD.open(filePath);
-        if (!file) {  lastError = "warning - cannot open file " + String(filePath); return false; }
+        if (!file) {  lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         fileSize = file.size();
 
         char fourCC[4];
 
-        if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading fileTag")
-        if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid fileTag")
-        if (strncmp(fourCC, "RIFF", 4) != 0) FILE_ERROR("error - not a RIFF fileformat")
+        if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(FILE_FOURCC_READ) //("read error - while reading fileTag")
+        if (verifyFourCC(fourCC) == false) FILE_ERROR(FILE_FOURCC_INVALID) //("error - invalid fileTag")
+        if (strncmp(fourCC, "RIFF", 4) != 0) FILE_ERROR(FILE_FOURCC_MISMATCH) //("error - not a RIFF fileformat")
         
-        if ((lastReadCount = file.read(&sfbk->size, 4)) != 4) FILE_ERROR("read error - while reading RIFF size")
-        if (fileSize != (sfbk->size + 8)) FILE_ERROR("error - fileSize mismatch")
+        if ((lastReadCount = file.read(&sfbk->size, 4)) != 4) FILE_ERROR(RIFF_SIZE_READ) //("read error - while reading RIFF size")
+        if (fileSize != (sfbk->size + 8)) FILE_ERROR(RIFF_SIZE_MISMATCH) //("error - fileSize mismatch")
 
-        if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading fileformat")
-        if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid fileformat")
+        if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(RIFF_FOURCC_READ) //("read error - while reading fileformat")
+        if (verifyFourCC(fourCC) == false) FILE_ERROR(RIFF_FOURCC_INVALID) //("error - invalid fileformat")
         
-        if (strncmp(fourCC, "sfbk", 4) != 0) FILE_ERROR("error - not a sfbk fileformat")
+        if (strncmp(fourCC, "sfbk", 4) != 0) FILE_ERROR(RIFF_FOURCC_MISMATCH) //("error - not a sfbk fileformat")
 
         char listTag[4];
         uint32_t listSize = 0;
         while (file.available() > 0)
         {
             // every block starts with a LIST tag
-            if ((lastReadCount = file.readBytes(listTag, 4)) != 4) FILE_ERROR("read error - while reading listTag")
-            if (verifyFourCC(listTag) == false) FILE_ERROR("error - listTag invalid")
-            if (strncmp(listTag, "LIST", 4) != 0) FILE_ERROR("error - listTag is not LIST")
+            if ((lastReadCount = file.readBytes(listTag, 4)) != 4) FILE_ERROR(LIST_FOURCC_READ) //("read error - while reading listTag")
+            if (verifyFourCC(listTag) == false) FILE_ERROR(LIST_FOURCC_INVALID) //("error - listTag invalid")
+            if (strncmp(listTag, "LIST", 4) != 0) FILE_ERROR(LIST_FOURCC_MISMATCH) //("error - listTag is not LIST")
 
             
-            if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR("read error - while getting listSize")
+            if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ) //("read error - while getting listSize")
 
-            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while reading listType")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LISTTYPE_FOURCC_READ) //("read error - while reading listType")
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.print(listSize);  USerial.print("\n");
-            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - invalid listType")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR(LISTTYPE_FOURCC_INVALID) //("error - invalid listType")
             
             
             if (strncmp(fourCC, "INFO", 4) == 0)
             {
-                sfbk->info_position = file.position();
+                sfbk->info_position = file.position(); // normally don't read info chunk to save ram
                 sfbk->info_size = listSize;
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR("seek error - while skipping INFO block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR(INFO_DATA_SKIP) //("seek error - while skipping INFO block")
                 
                 //file.close(); return true; // early return debug test
             }
@@ -85,7 +86,7 @@ namespace SF2::lazy_reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sfbk root block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown sfbk root block")
             }
         }
 
@@ -106,23 +107,23 @@ namespace SF2::lazy_reader
         char fourCC[4];
         while (file.available())
         {
-            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting sdtablock type")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(SDTA_FOURCC_READ) //("read error - while getting sdtablock type")
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
-            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - sdtablock type invalid")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR(SDTA_FOURCC_INVALID) //("error - sdtablock type invalid")
             
             if (strncmp(fourCC, "smpl", 4) == 0)
             {
-                if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR("read error - while reading smpl size")
+                if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR(SDTA_SMPL_SIZE_READ) //("read error - while reading smpl size")
                 sfbk->sdta.smpl.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR("seek error - while skipping smpl data")
+                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR(SDTA_SMPL_DATA_SKIP) //("seek error - while skipping smpl data")
             }
             else if (strncmp(fourCC, "sm24", 4) == 0)
             {
-                if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR("read error - while reading sm24 size")
+                if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR(SDTA_SM24_SIZE_READ) //("read error - while reading sm24 size")
                 sfbk->sdta.sm24.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR("seek error - while skipping sm24 data")
+                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR(SDTA_SM24_DATA_SKIP) //("seek error - while skipping sm24 data")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
@@ -133,8 +134,8 @@ namespace SF2::lazy_reader
             {
                 // normally unknown blocks should be ignored
                 uint32_t size = 0;
-                if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR("read error - while getting unknown sdta block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown sdta block")
+                if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(SDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown sdta block size")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown sdta block")
             }
         }
         return true;
@@ -146,93 +147,93 @@ namespace SF2::lazy_reader
         uint32_t size = 0;
         while (file.available())
         {
-            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR("read error - while getting pdta block type")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(PDTA_FOURCC_READ) //("read error - while getting pdta block type")
             //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
-            if (verifyFourCC(fourCC) == false) FILE_ERROR("error - pdta type invalid")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR(PDTA_FOURCC_INVALID) //("error - pdta type invalid")
 
             // store result for easier pinpoint of error handing
             bool sizeReadFail = ((lastReadCount = file.read(&size, 4)) != 4);
 
             if (strncmp(fourCC, "phdr", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta phdr block size")
-                if (size % phdr_rec::Size != 0) FILE_ERROR("error - pdta phdr block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_PHDR_SIZE_READ) //("read error - while getting pdta phdr block size")
+                if (size % phdr_rec::Size != 0) FILE_ERROR(PDTA_PHDR_SIZE_MISMATCH) //("error - pdta phdr block size mismatch")
 
                 sfbk->pdta.phdr_count = size/phdr_rec::Size;
                 sfbk->pdta.phdr_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping phdr block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PHDR_DATA_SKIP) //("seek error - while skipping phdr block")
             }
             else if (strncmp(fourCC, "pbag", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pbag block size")
-                if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta pbag block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_PBAG_SIZE_READ) //("read error - while getting pdta pbag block size")
+                if (size % bag_rec::Size != 0) FILE_ERROR(PDTA_PBAG_SIZE_MISMATCH) //("error - pdta pbag block size mismatch")
 
                 sfbk->pdta.pbag_count = size/bag_rec::Size;
                 sfbk->pdta.pbag_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pbag block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PBAG_DATA_SKIP) //("seek error - while skipping pbag block")
             }
             else if (strncmp(fourCC, "pmod", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pmod block size")
-                if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta pmod block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_PMOD_SIZE_READ) //("read error - while getting pdta pmod block size")
+                if (size % mod_rec::Size != 0) FILE_ERROR(PDTA_PMOD_SIZE_MISMATCH) //("error - pdta pmod block size mismatch")
 
                 sfbk->pdta.pmod_count = size/mod_rec::Size;
                 sfbk->pdta.pmod_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pmod block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PMOD_DATA_SKIP) //("seek error - while skipping pmod block")
             }
             else if (strncmp(fourCC, "pgen", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta pgen block size")
-                if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta pgen block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_PGEN_SIZE_READ) //("read error - while getting pdta pgen block size")
+                if (size % gen_rec::Size != 0) FILE_ERROR(PDTA_PGEN_SIZE_MISMATCH) //("error - pdta pgen block size mismatch")
 
                 sfbk->pdta.pgen_count = size/gen_rec::Size;
                 sfbk->pdta.pgen_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping pgen block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PGEN_DATA_SKIP) //("seek error - while skipping pgen block")
             }
             else if (strncmp(fourCC, "inst", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta inst block size")
-                if (size % inst_rec::Size != 0) FILE_ERROR("error - pdta inst block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_INST_SIZE_READ) //("read error - while getting pdta inst block size")
+                if (size % inst_rec::Size != 0) FILE_ERROR(PDTA_INST_SIZE_MISMATCH) //("error - pdta inst block size mismatch")
 
                 sfbk->pdta.inst_count = size/inst_rec::Size;
                 sfbk->pdta.inst_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping inst block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_INST_DATA_SKIP) //("seek error - while skipping inst block")
             }
             else if (strncmp(fourCC, "ibag", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta ibag block size")
-                if (size % bag_rec::Size != 0) FILE_ERROR("error - pdta ibag block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_IBAG_SIZE_READ) //("read error - while getting pdta ibag block size")
+                if (size % bag_rec::Size != 0) FILE_ERROR(PDTA_IBAG_SIZE_MISMATCH) //("error - pdta ibag block size mismatch")
 
                 sfbk->pdta.ibag_count = size/bag_rec::Size;
                 sfbk->pdta.ibag_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping ibag block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IBAG_DATA_SKIP) //("seek error - while skipping ibag block")
             }
             else if (strncmp(fourCC, "imod", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta imod block size")
-                if (size % mod_rec::Size != 0) FILE_ERROR("error - pdta imod block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_IMOD_SIZE_READ) //("read error - while getting pdta imod block size")
+                if (size % mod_rec::Size != 0) FILE_ERROR(PDTA_IMOD_SIZE_MISMATCH) //("error - pdta imod block size mismatch")
 
                 sfbk->pdta.imod_count = size/mod_rec::Size;
                 sfbk->pdta.imod_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping imod block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IMOD_DATA_SKIP) //("seek error - while skipping imod block")
             }
             else if (strncmp(fourCC, "igen", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta igen block size")
-                if (size % gen_rec::Size != 0) FILE_ERROR("error - pdta igen block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_IGEN_SIZE_READ) //("read error - while getting pdta igen block size")
+                if (size % gen_rec::Size != 0) FILE_ERROR(PDTA_IGEN_SIZE_MISMATCH) //("error - pdta igen block size mismatch")
 
                 sfbk->pdta.igen_count = size/gen_rec::Size;
                 sfbk->pdta.igen_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping igen block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IGEN_DATA_SKIP) //("seek error - while skipping igen block")
             }
             else if (strncmp(fourCC, "shdr", 4) == 0)
             {
-                if (sizeReadFail) FILE_ERROR("read error - while getting pdta shdr block size")
-                if (size % shdr_rec::Size != 0) FILE_ERROR("error - pdta shdr block size mismatch")
+                if (sizeReadFail) FILE_ERROR(PDTA_SHDR_SIZE_READ) //("read error - while getting pdta shdr block size")
+                if (size % shdr_rec::Size != 0) FILE_ERROR(PDTA_SHDR_SIZE_MISMATCH) //("error - pdta shdr block size mismatch")
 
                 sfbk->pdta.shdr_count = size/shdr_rec::Size;
                 sfbk->pdta.shdr_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping shdr block")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_SHDR_DATA_SKIP) //("seek error - while skipping shdr block")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
@@ -243,8 +244,8 @@ namespace SF2::lazy_reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (sizeReadFail) FILE_ERROR("read error - while getting unknown block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR("seek error - while skipping unknown pdta block")
+                if (sizeReadFail) FILE_ERROR(PDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown block size")
+                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown pdta block")
             }
         }
         return true;
@@ -365,7 +366,13 @@ namespace SF2::lazy_reader
 
     bool load_instrument(uint index, SF2::instrument_data_temp &inst)
     {
-        if (index > sfbk->pdta.inst_count - 1){ lastError = "load instrument index out of range"; return false; }
+        clearErrors();
+
+        if (index > sfbk->pdta.inst_count - 1){ 
+            //lastError = "load instrument index out of range";
+            lastError = Error::Errors::FUNCTION_LOAD_INST_INDEX_RANGE;
+            return false;
+        }
 
         File file = SD.open(SF2::filePath.c_str());
         file.seek(sfbk->pdta.inst_position + inst_rec::Size*index + 20);
@@ -459,7 +466,7 @@ namespace SF2::lazy_reader
         for (int i = 0; i < ibag_count; i++) {
             delete[] bags[i].items; // Deallocate memory for the array of pointers
         }
-        USerial.print("instrument load complete\n");
+        
         file.close();
         return true;
     }
@@ -480,8 +487,10 @@ namespace SF2::lazy_reader
 
     bool ReadSampleDataFromFile(instrument_data_temp &inst)
     {
+        clearErrors();
+
         File file = SD.open(SF2::filePath.c_str());
-        if (!file) {USerial.print("cannot open file\n"); return false;}
+        if (!file) {lastError = Error::Errors::FILE_NOT_OPEN; return false;}
         if (samples != nullptr) {
             FreePrevSampleData();
         } 
@@ -509,20 +518,25 @@ namespace SF2::lazy_reader
             
             samples[si].data = (uint32_t*)extmem_malloc(ary_length*4);
             if (samples[si].data == nullptr) {
-                lastError = "@ sample " + String(si) + "Not enough memory to allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSize*4) + " bytes";
+                lastError = Error::Errors::RAM_DATA_MALLOC;
+                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSize*4) + " bytes";
                 file.close();
                 FreePrevSampleData();
                 return false;
             }
 
             if (file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2) == false) {
-                lastError = "@ sample " +  String(si) + " could not seek to data location in file";
+                //lastError = "@ sample " +  String(si) + " could not seek to data location in file";
+                lastError = Error::Errors::SDTA_SMPL_DATA_SEEK;
+                lastErrorPosition = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
                 file.close();
                 FreePrevSampleData();
                 return false;
             }
-            if (lastReadCount = file.readBytes((char*)samples[si].data, length_8) != length_8) {
-                lastError = "@ sample " +  String(si) + " could not read sample data from file, wanted:" + length_8 + " but could only read " + lastReadCount;
+            if ((lastReadCount = file.readBytes((char*)samples[si].data, length_8)) != length_8) {
+                //lastError = "@ sample " +  String(si) + " could not read sample data from file, wanted:" + length_8 + " but could only read " + lastReadCount;
+                lastError = Error::Errors::SDTA_SMPL_DATA_READ;
+                lastErrorPosition = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
                 file.close();
                 FreePrevSampleData();
                 return false;

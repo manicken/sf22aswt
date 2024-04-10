@@ -6,7 +6,7 @@
 #include <SerialFlash.h>
 #include <MIDI.h>
 #include "ledblinker.h"
-#include "Mixer80.h"
+#include "Mixer128.h"
 
 #include "SF2/helpers.h"
 #include "SF2/common.h"
@@ -26,7 +26,7 @@ const float noteFreqs[128] = {8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562
 //#define SF2reader SF2::reader
 #include "SF2/reader_lazy.h"
 #define SF2reader SF2::lazy_reader
-#define VOICE_COUNT 80
+#define VOICE_COUNT 128
 
 AudioSynthWavetable wavetable[VOICE_COUNT];
 int notes[VOICE_COUNT];
@@ -34,11 +34,11 @@ bool sustain[VOICE_COUNT];
 //bool sustainActive=false;
 //AudioSynthWaveform waveform;
 
-AudioMixer80 mixer;
+AudioMixer128 mixer;
 
 AudioControlSGTL5000             outputCtrl;
 
-AudioOutputUSB usbOut;
+//AudioOutputUSB usbOut;
 AudioOutputI2S i2sOut;
 /*
 AudioConnection ac(waveform, 0, usbOut, 0);
@@ -52,19 +52,21 @@ AudioConnection voiceConnections[VOICE_COUNT];
 //AudioConnection toMix_2(wavetable[1], 0, mixer, 1);
 //AudioConnection toMix_3(wavetable[2], 0, mixer, 2);
 //AudioConnection toMix_4(wavetable[3], 0, mixer, 3);
-AudioConnection toUsb_1(mixer, 0, usbOut, 0);
-AudioConnection toUsb_2(mixer, 0, usbOut, 1);
+//AudioConnection toUsb_1(mixer, 0, usbOut, 0);
+//AudioConnection toUsb_2(mixer, 0, usbOut, 1);
 
 AudioConnection toI2s_1(mixer, 0, i2sOut, 0);
 AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
 //AudioOutputUSB usb;
 void InitVoices()
 {
+    float mixerGlobalGain = 1.0f/(float)(VOICE_COUNT/4);
     for (int i=0;i<VOICE_COUNT;i++)
     {
         voiceConnections[i].connect(wavetable[i], 0, mixer, i);
         notes[i] = -1; // set to free
         sustain[i] = false;
+        mixer.gain(i, mixerGlobalGain);
     }
 }
 void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
@@ -100,13 +102,13 @@ void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     USerial.print(", velocity: ");
     USerial.print(velocity); USerial.print("\n");*/
     //waveform.frequency(noteFreqs[note]);
-    for (int i=0;i<VOICE_COUNT;i++){
-        if (notes[i]==-1) {
-            notes[i] = note;
-            wavetable[i].playNote(note, velocity);
+    //for (int i=0;i<VOICE_COUNT;i++){
+    //    if (notes[i]==-1) {
+            notes[note] = 1;
+            wavetable[note].playNote(note, velocity);
             return;
-        }
-    }
+        //}
+    //}
     //waveform.amplitude(1.0);
 }
 
@@ -118,13 +120,14 @@ void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
     //waveform.amplitude(0);
     //if (sustainActive) return;
 
-    for (int i=0;i<VOICE_COUNT;i++){
-        if (notes[i]==note && sustain[i] == false) {
-            notes[i] = -1;
-            wavetable[i].stop();
+    //for (int i=0;i<VOICE_COUNT;i++){
+        if (notes[note]==1 && sustain[note] == false) {
+            notes[note] = -1;
+            wavetable[note].stop();
             return;
         }
-    }
+    //}
+
 }
 
 void usbMidi_ControlChange(byte channel, byte control, byte value) {
@@ -137,6 +140,10 @@ void usbMidi_ControlChange(byte channel, byte control, byte value) {
           break;
     }
 }
+void usbMidi_SysEx(const uint8_t *data, uint16_t length, bool complete)
+{
+
+}
 
 
 // Define the maximum size of the JSON input
@@ -148,7 +155,7 @@ void processSerialCommand();
 
 void setup()
 {
-    AudioMemory(128);
+    AudioMemory(1024);
     InitVoices();
 	//Serial.begin(115200);
     USerial.begin(115200);
@@ -165,7 +172,8 @@ void setup()
     usbMIDI.setHandleNoteOn(usbMidi_NoteOn);
     usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
     usbMIDI.setHandleControlChange(usbMidi_ControlChange);
-
+    usbMIDI.setHandleSysEx(usbMidi_SysEx);
+    
 
     //waveform.begin(0, 50, WAVEFORM_SQUARE);
     outputCtrl.enable();
@@ -186,6 +194,16 @@ void loop()
     usbMIDI.read();
 }
 
+void printSF2ErrorInfo()
+{
+    SF2::Error::printError(SF2::lastError); USerial.print("\n");
+    USerial.println(SF2::lastErrorStr);
+    USerial.print(" @ position: ");
+    USerial.print(SF2::lastErrorPosition);
+    USerial.print(", lastReadCount: ");
+    USerial.print(SF2::lastReadCount); USerial.print("\n");
+}
+
 void processSerialCommand()
 {
     if (USerial.available() <= 0) return;
@@ -196,6 +214,8 @@ void processSerialCommand()
     char serialRxBuffer[JSON_BUFFER_SIZE];
     int bytesRead = USerial.readBytesUntil('\n', serialRxBuffer, JSON_BUFFER_SIZE - 1);
     serialRxBuffer[bytesRead] = '\0'; // Null-terminate the string
+    //usbMIDI.sendNoteOn(40, 127, 0);
+    usbMIDI.sendSysEx(11, "hello world");
     if (strncmp(serialRxBuffer, "list_files:", 11) == 0)
     {
         long startTime = micros();
@@ -218,11 +238,7 @@ void processSerialCommand()
         long startTime = micros();
         if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)
         {
-            USerial.print(SF2::lastError);
-            USerial.print(" @ position: ");
-            USerial.print(SF2::lastErrorPosition);
-            USerial.print(", lastReadCount: ");
-            USerial.print(SF2::lastReadCount); USerial.print("\n");
+            printSF2ErrorInfo();
             return;
             // TODO. open and print a part of file contents if possible
             // using lastReadCount and position plus reading some bytes extra backwards
@@ -298,9 +314,10 @@ void processSerialCommand()
         
         if (SF2reader::load_instrument(index, inst_temp) == false)
         {
-            USerial.print(SF2::lastError); USerial.print("\n");
+            printSF2ErrorInfo();
             return;
         }
+        USerial.print("instrument load presets complete\n");
 
         //USerial.print(inst_temp.ToString());  USerial.print("\n");
 
@@ -313,19 +330,21 @@ void processSerialCommand()
 
         USerial.print("Start to load sample data from file\n");
         startTime = micros();
-        SF2::instrument_data inst_final;
+        
         if (SF2::lazy_reader::ReadSampleDataFromFile(inst_temp) == false)
         {
-            USerial.print(SF2::lastError); USerial.print("\n");
+            printSF2ErrorInfo();
             return;
         }
-        SF2::converter::toFinal(inst_temp, inst_final);
+        //SF2::instrument_data inst_final;
+        //SF2::converter::toFinal(inst_temp, inst_final);
         endTime = micros();
         USerial.print("\nload instrument sample data took: ");
         USerial.print(endTime-startTime);
         USerial.print(" microseconds\n");
 
-        AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
+        //AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_final);
+        AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp);
         SetInstrument(wt_inst);
 
         USerial.print("json:{'cmd':'instrument_loaded'}\n");

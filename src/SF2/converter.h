@@ -25,6 +25,23 @@ namespace SF2::converter
         };
     }
 
+    AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data_temp &data)
+    {
+        SF2::sample_header *samples = new sample_header[data.sample_count];
+        for (int i=0;i<data.sample_count;i++)
+        {
+            samples[i] = data.samples[i].toFinal();
+        }
+
+        const AudioSynthWavetable::sample_data *sample_data = reinterpret_cast<const AudioSynthWavetable::sample_data*>(samples);
+
+        return {
+            data.sample_count,
+            data.sample_note_ranges,
+            sample_data
+        };
+    }
+
     void toFinal(instrument_data_temp &idt, instrument_data &id)
     {
         id.sample_count = idt.sample_count;
