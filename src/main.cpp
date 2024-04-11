@@ -60,13 +60,29 @@ AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
 //AudioOutputUSB usb;
 void InitVoices()
 {
-    float mixerGlobalGain = 1.0f/(float)(VOICE_COUNT/4);
+    float mixerGlobalGain = 1.0f/8.0f;//(float)(VOICE_COUNT/4);
     for (int i=0;i<VOICE_COUNT;i++)
     {
         voiceConnections[i].connect(wavetable[i], 0, mixer, i);
         notes[i] = -1; // set to free
         sustain[i] = false;
         mixer.gain(i, mixerGlobalGain);
+    }
+}
+void autoGain()
+{
+    int numPlaying = 0;
+    for (int i=0;i<128;i++)
+    {
+        if (wavetable[i].isPlaying())
+            numPlaying++;
+    }
+    if (numPlaying == 0) numPlaying = 1;
+    float newGain = 1.0f/(float)numPlaying;
+    USerial.println(newGain);
+    for (int i=0;i<128;i++)
+    {
+        mixer.gain(i, newGain);
     }
 }
 void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
@@ -94,7 +110,9 @@ void deactivateSustain()
         }
         
     }
+    //autoGain();
 }
+
 
 void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     /*USerial.print("note on: ");
@@ -106,9 +124,10 @@ void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
     //    if (notes[i]==-1) {
             notes[note] = 1;
             wavetable[note].playNote(note, velocity);
-            return;
+            //return;
         //}
     //}
+    //autoGain();
     //waveform.amplitude(1.0);
 }
 
@@ -124,6 +143,7 @@ void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
         if (notes[note]==1 && sustain[note] == false) {
             notes[note] = -1;
             wavetable[note].stop();
+            //autoGain();
             return;
         }
     //}
@@ -215,7 +235,8 @@ void processSerialCommand()
     int bytesRead = USerial.readBytesUntil('\n', serialRxBuffer, JSON_BUFFER_SIZE - 1);
     serialRxBuffer[bytesRead] = '\0'; // Null-terminate the string
     //usbMIDI.sendNoteOn(40, 127, 0);
-    usbMIDI.sendSysEx(11, "hello world");
+    usbMIDI.sendSysEx(11, "Hello World");
+    
     if (strncmp(serialRxBuffer, "list_files:", 11) == 0)
     {
         long startTime = micros();
