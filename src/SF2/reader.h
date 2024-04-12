@@ -7,7 +7,22 @@
 #include "helpers.h"
 #include "common.h"
 
-#define USerial SerialUSB1
+#ifdef DEBUG
+  #define USerial SerialUSB1
+  #define DebugPrint(args) USerial.print(args);
+  #define DebugPrintln(args) USerial.println(args);
+  #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
+  #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
+  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
+  #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
+#else
+  #define DebugPrint(args)
+  #define DebugPrintln(args)
+  #define DebugPrint_Text_Var(text, var)
+  #define DebugPrintln_Text_Var(text, var)
+  #define DebugPrintFOURCC(fourCC)
+  #define DebugPrintFOURCC_size(size)
+#endif
 
 namespace SF2::reader
 {
@@ -55,7 +70,8 @@ namespace SF2::reader
             if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ)//("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LISTTYPE_FOURCC_READ)//("read error - while reading listType")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.print(listSize);  USerial.print("\n");
+            DebugPrintFOURCC(fourCC);
+            DebugPrintFOURCC_size(listSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(LISTTYPE_FOURCC_INVALID)//("error - invalid listType")
             
             
@@ -80,7 +96,7 @@ namespace SF2::reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP)//("seek error - while skipping unknown sfbk root block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP,listSize - 4)//("seek error - while skipping unknown sfbk root block")
             }
         }
         SF2::filePath = filePath;
@@ -102,7 +118,7 @@ namespace SF2::reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(SDTA_FOURCC_READ)//("read error - while getting infoblock type")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            DebugPrintFOURCC(fourCC);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(SDTA_FOURCC_INVALID)//("error - infoblock type invalid")
             
             if (strncmp(fourCC, "smpl", 4) == 0)
@@ -110,18 +126,19 @@ namespace SF2::reader
                 if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR(SDTA_SMPL_SIZE_READ)//("read error - while reading smpl size")
                 sfbk->sdta.smpl.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR(SDTA_SMPL_DATA_SKIP)//("seek error - while skipping smpl data")
+                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SMPL_DATA_SKIP, sfbk->sdta.smpl.size)//("seek error - while skipping smpl data")
             }
             else if (strncmp(fourCC, "sm24", 4) == 0)
             {
                 if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR(SDTA_SM24_SIZE_READ)//("read error - while reading sm24 size")
                 sfbk->sdta.sm24.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR(SDTA_SM24_DATA_SKIP)//("seek error - while skipping sm24 data")
+                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SM24_DATA_SKIP, sfbk->sdta.sm24.size)//("seek error - while skipping sm24 data")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
-                file.seek(-4, SeekCur); // skip back
+                // skip back
+                if (file.seek(file.position()-4) == false) FILE_SEEK_ERROR(SDTA_BACK_SEEK, file.position()-4)
                 return true;
             }
             else
@@ -129,7 +146,7 @@ namespace SF2::reader
                 // normally unknown blocks should be ignored
                 uint32_t size = 0;
                 if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(SDTA_UNKNOWN_BLOCK_SIZE_READ)//("read error - while getting unknown sdta block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP)//("seek error - while skipping unknown sdta block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP, size)//("seek error - while skipping unknown sdta block")
             }
         }
         return true;
@@ -142,7 +159,7 @@ namespace SF2::reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(PDTA_FOURCC_READ)//("read error - while getting pdta block type")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            DebugPrintFOURCC(fourCC);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(PDTA_FOURCC_INVALID)//("error - pdta type invalid")
 
             // store result for easier pinpoint of error handing
@@ -249,14 +266,15 @@ namespace SF2::reader
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
-                file.seek(-4, SeekCur); // skip back
+                // skip back
+                if (file.seek(file.position()-4) == false) FILE_SEEK_ERROR(PDTA_BACK_SEEK, file.position()-4)
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
                 if (sizeReadFail) FILE_ERROR(PDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_UNKNOWN_BLOCK_DATA_SKIP)//("seek error - while skipping unknown pdta block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_UNKNOWN_BLOCK_DATA_SKIP, size)//("seek error - while skipping unknown pdta block")
             }
         }
         return true;

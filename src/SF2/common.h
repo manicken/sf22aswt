@@ -9,6 +9,13 @@
 
 #define USerial SerialUSB1
 
+#ifdef DEBUG
+  #define USerial SerialUSB1
+  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
+#else
+  #define DebugPrintFOURCC(fourCC)
+#endif
+
 namespace SF2
 {
     uint32_t fileSize;
@@ -28,23 +35,23 @@ namespace SF2
     }
     //#define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
     #define FILE_ERROR(ERROR_TYPE) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
+    #define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
     #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (Error::Errors)((uint16_t)lastError & (uint16_t)SF2::Error::ROOT_TYPE::SUB_TYPE);
     // TODO make all samples load into a single array for easier allocation / deallocation
     // also maybe have it as a own contained memory pool
     sample_data *samples;
     int sample_count = 0;
+    int totalSampleDataSizeBytes = 0;
 
     bool ReadStringUsingLeadingSize(File &file, String& string)
     {
         uint32_t size = 0;
         if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(INFO_STRING_SIZE_READ) //FILE_ERROR("read error - while getting infoblock string size")
-        //DSerial.printf("string size:%ld",size);
         char bytes[size];
         if ((lastReadCount = file.readBytes(bytes, size)) != size) FILE_ERROR(INFO_STRING_DATA_READ) //FILE_ERROR("read error - while reading infoblock string")
         
         // TODO. sanitize bytes
         string = String(bytes);
-        //printRawBytes(str.c_str(), size);
 
         return true;
     }
@@ -57,14 +64,11 @@ namespace SF2
 
     bool readInfoBlock(File &file, INFO &info)
     {
-        //USerial.print("\navailable >>>"); USerial.print(file.available()); USerial.print("\n"); USerial.print("<<<\n");
         char fourCC[4];
         while (file.available() > 0)
         {
-            //USerial.printf("\n  file position: %ld\n", file.position());
-            
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(INFO_FOURCC_READ) //FILE_ERROR("read error - while getting infoblock type")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            DebugPrintFOURCC(fourCC);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(INFO_FOURCC_INVALID) //FILE_ERROR("error - infoblock type invalid")
 
             uint32_t dummy = 0;
@@ -87,14 +91,15 @@ namespace SF2
             else if (strncmp(fourCC, "ISFT", 4) == 0) { if (ReadStringUsingLeadingSize(file, info.ISFT) == false){ FILE_ERROR_APPEND_SUB(INFO, ISFT) return false; }}// ReadStringUsingLeadingSize takes care of the error report
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
-                file.seek(file.position() - 4); // skip back
+                 // skip back
+                if (file.seek(-4, SeekCur) == false) FILE_SEEK_ERROR(INFO_BACK_SEEK, -4)
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
                 if ((lastReadCount = file.read(&dummy, 4)) != 4) FILE_ERROR(INFO_UNKNOWN_BLOCK_SIZE_READ) //FILE_ERROR("read error - while getting unknown INFO block size")
-                if (file.seek(file.position() + dummy) == false) FILE_ERROR(INFO_UNKNOWN_BLOCK_DATA_SKIP) //FILE_ERROR("seek error - while skipping unknown INFO block")
+                if (file.seek(file.position() + dummy) == false) FILE_SEEK_ERROR(INFO_UNKNOWN_BLOCK_DATA_SKIP, file.position() + dummy) //FILE_ERROR("seek error - while skipping unknown INFO block")
             }
         }
         return true;

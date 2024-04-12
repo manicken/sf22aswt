@@ -27,30 +27,18 @@ namespace SF2::converter
 
     AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data_temp &data)
     {
-        // add one empty sample to end and beginning
-        // to ensure nothing is played outside scope of note ranges
-        // set by the soundfont
-
-        //SF2::sample_header *samples = new sample_header[data.sample_count+2];
-        //uint8_t *note_ranges = new uint8_t[data.sample_count+2];
+        // must use a second struct to contain the data
+        // as AudioSynthWavetable::sample_data members are const
         SF2::sample_header *samples = new sample_header[data.sample_count+1];
         uint8_t *note_ranges = new uint8_t[data.sample_count+1];
-        //samples[0] = {};
-        //note_ranges[0] = data.sample_note_ranges[0] - 1; // copy the first minus one
         for (int i=0;i<data.sample_count;i++)
         {
-            //if (data.samples[i].invalid) { samples[i+1] = {}; note_ranges[i+1] = 0; continue;}
-            //samples[i+1] = data.samples[i].toFinal();
-            //note_ranges[i+1] = data.sample_note_ranges[i];
-
-            //if (data.samples[i].invalid) { samples[i] = {}; note_ranges[i] = 0; continue;}
             samples[i] = data.samples[i].toFinal();
             note_ranges[i] = data.sample_note_ranges[i];
         }
-        //samples[data.sample_count+1] = {};
-        //note_ranges[data.sample_count+1] = data.sample_note_ranges[data.sample_count-1] + 1;
+        // have one dummy empty sample so that AudioSynthWavetable don't crash while try to play notes outside of scope
         samples[data.sample_count] = {};
-        note_ranges[data.sample_count] = data.sample_note_ranges[data.sample_count-1] + 1;
+        note_ranges[data.sample_count] = 127; // set to last note possible
 
         const AudioSynthWavetable::sample_data *sample_data = reinterpret_cast<const AudioSynthWavetable::sample_data*>(samples);
 

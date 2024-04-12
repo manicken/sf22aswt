@@ -7,7 +7,24 @@
 #include "helpers.h"
 #include "common.h"
 
-#define USerial SerialUSB1
+
+
+#ifdef DEBUG
+  #define USerial SerialUSB1
+  #define DebugPrint(args) USerial.print(args);
+  #define DebugPrintln(args) USerial.println(args);
+  #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
+  #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
+  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
+  #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
+#else
+  #define DebugPrint(args)
+  #define DebugPrintln(args)
+  #define DebugPrint_Text_Var(text, var)
+  #define DebugPrintln_Text_Var(text, var)
+  #define DebugPrintFOURCC(fourCC)
+  #define DebugPrintFOURCC_size(size)
+#endif
 
 namespace SF2::lazy_reader
 {
@@ -59,7 +76,8 @@ namespace SF2::lazy_reader
             if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ) //("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LISTTYPE_FOURCC_READ) //("read error - while reading listType")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<< listsize: "); USerial.print(listSize);  USerial.print("\n");
+            DebugPrintFOURCC(fourCC);
+            DebugPrintFOURCC_size(listSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(LISTTYPE_FOURCC_INVALID) //("error - invalid listType")
             
             
@@ -67,7 +85,7 @@ namespace SF2::lazy_reader
             {
                 sfbk->info_position = file.position(); // normally don't read info chunk to save ram
                 sfbk->info_size = listSize;
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR(INFO_DATA_SKIP) //("seek error - while skipping INFO block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(INFO_DATA_SKIP, listSize - 4) //("seek error - while skipping INFO block")
                 
                 //file.close(); return true; // early return debug test
             }
@@ -86,7 +104,7 @@ namespace SF2::lazy_reader
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown sfbk root block")
+                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP, listSize - 4) //("seek error - while skipping unknown sfbk root block")
             }
         }
 
@@ -108,7 +126,7 @@ namespace SF2::lazy_reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(SDTA_FOURCC_READ) //("read error - while getting sdtablock type")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            DebugPrintFOURCC(fourCC);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(SDTA_FOURCC_INVALID) //("error - sdtablock type invalid")
             
             if (strncmp(fourCC, "smpl", 4) == 0)
@@ -116,18 +134,19 @@ namespace SF2::lazy_reader
                 if ((lastReadCount = file.read(&sfbk->sdta.smpl.size, 4)) != 4) FILE_ERROR(SDTA_SMPL_SIZE_READ) //("read error - while reading smpl size")
                 sfbk->sdta.smpl.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_ERROR(SDTA_SMPL_DATA_SKIP) //("seek error - while skipping smpl data")
+                if (file.seek(sfbk->sdta.smpl.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SMPL_DATA_SKIP, sfbk->sdta.smpl.size) //("seek error - while skipping smpl data")
             }
             else if (strncmp(fourCC, "sm24", 4) == 0)
             {
                 if ((lastReadCount = file.read(&sfbk->sdta.sm24.size, 4)) != 4) FILE_ERROR(SDTA_SM24_SIZE_READ) //("read error - while reading sm24 size")
                 sfbk->sdta.sm24.position = file.position();
                 // skip sample data
-                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_ERROR(SDTA_SM24_DATA_SKIP) //("seek error - while skipping sm24 data")
+                if (file.seek(sfbk->sdta.sm24.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SM24_DATA_SKIP, sfbk->sdta.sm24.size) //("seek error - while skipping sm24 data")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0)
             {
-                file.seek(-4, SeekCur); // skip back
+                // skip back
+                if (file.seek(file.position()-4) == false) FILE_SEEK_ERROR(SDTA_BACK_SEEK, -4)
                 return true;
             }
             else
@@ -135,7 +154,7 @@ namespace SF2::lazy_reader
                 // normally unknown blocks should be ignored
                 uint32_t size = 0;
                 if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(SDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown sdta block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown sdta block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP, size) //("seek error - while skipping unknown sdta block")
             }
         }
         return true;
@@ -148,7 +167,7 @@ namespace SF2::lazy_reader
         while (file.available())
         {
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(PDTA_FOURCC_READ) //("read error - while getting pdta block type")
-            //USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.print("<<<\n");
+            DebugPrintFOURCC(fourCC);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(PDTA_FOURCC_INVALID) //("error - pdta type invalid")
 
             // store result for easier pinpoint of error handing
@@ -161,7 +180,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.phdr_count = size/phdr_rec::Size;
                 sfbk->pdta.phdr_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PHDR_DATA_SKIP) //("seek error - while skipping phdr block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_PHDR_DATA_SKIP, size) //("seek error - while skipping phdr block")
             }
             else if (strncmp(fourCC, "pbag", 4) == 0)
             {
@@ -170,7 +189,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pbag_count = size/bag_rec::Size;
                 sfbk->pdta.pbag_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PBAG_DATA_SKIP) //("seek error - while skipping pbag block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_PBAG_DATA_SKIP, size) //("seek error - while skipping pbag block")
             }
             else if (strncmp(fourCC, "pmod", 4) == 0)
             {
@@ -179,7 +198,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pmod_count = size/mod_rec::Size;
                 sfbk->pdta.pmod_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PMOD_DATA_SKIP) //("seek error - while skipping pmod block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_PMOD_DATA_SKIP, size) //("seek error - while skipping pmod block")
             }
             else if (strncmp(fourCC, "pgen", 4) == 0)
             {
@@ -188,7 +207,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.pgen_count = size/gen_rec::Size;
                 sfbk->pdta.pgen_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_PGEN_DATA_SKIP) //("seek error - while skipping pgen block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_PGEN_DATA_SKIP, size) //("seek error - while skipping pgen block")
             }
             else if (strncmp(fourCC, "inst", 4) == 0)
             {
@@ -197,7 +216,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.inst_count = size/inst_rec::Size;
                 sfbk->pdta.inst_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_INST_DATA_SKIP) //("seek error - while skipping inst block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_INST_DATA_SKIP, size) //("seek error - while skipping inst block")
             }
             else if (strncmp(fourCC, "ibag", 4) == 0)
             {
@@ -206,7 +225,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.ibag_count = size/bag_rec::Size;
                 sfbk->pdta.ibag_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IBAG_DATA_SKIP) //("seek error - while skipping ibag block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_IBAG_DATA_SKIP, size) //("seek error - while skipping ibag block")
             }
             else if (strncmp(fourCC, "imod", 4) == 0)
             {
@@ -215,7 +234,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.imod_count = size/mod_rec::Size;
                 sfbk->pdta.imod_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IMOD_DATA_SKIP) //("seek error - while skipping imod block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_IMOD_DATA_SKIP, size) //("seek error - while skipping imod block")
             }
             else if (strncmp(fourCC, "igen", 4) == 0)
             {
@@ -224,7 +243,7 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.igen_count = size/gen_rec::Size;
                 sfbk->pdta.igen_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_IGEN_DATA_SKIP) //("seek error - while skipping igen block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_IGEN_DATA_SKIP, size) //("seek error - while skipping igen block")
             }
             else if (strncmp(fourCC, "shdr", 4) == 0)
             {
@@ -233,19 +252,19 @@ namespace SF2::lazy_reader
 
                 sfbk->pdta.shdr_count = size/shdr_rec::Size;
                 sfbk->pdta.shdr_position = file.position();
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_SHDR_DATA_SKIP) //("seek error - while skipping shdr block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_SHDR_DATA_SKIP, size) //("seek error - while skipping shdr block")
             }
             else if (strncmp(fourCC, "LIST", 4) == 0) // failsafe if file don't follow standard
             {
-                
-                file.seek(-8, SeekCur); // skip back
+                // skip back
+                if (file.seek(file.position()-8) == false) FILE_SEEK_ERROR(PDTA_BACK_SEEK, -8) 
                 return true;
             }
             else
             {
                 // normally unknown blocks should be ignored
                 if (sizeReadFail) FILE_ERROR(PDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown block size")
-                if (file.seek(size, SeekCur) == false) FILE_ERROR(PDTA_UNKNOWN_BLOCK_DATA_SKIP) //("seek error - while skipping unknown pdta block")
+                if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(PDTA_UNKNOWN_BLOCK_DATA_SKIP, size) //("seek error - while skipping unknown pdta block")
             }
         }
         return true;
@@ -331,14 +350,15 @@ namespace SF2::lazy_reader
     {
         SF2GeneratorAmount genval;
         if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleID, &genval) == false) return false;
-        if (file.seek(sfbk->pdta.shdr_position + genval.UAmount*shdr_rec::Size) == false) return false;
-        if (file.read(shdr, shdr_rec::Size) != shdr_rec::Size) return false;
+        uint64_t seekPos = sfbk->pdta.shdr_position + genval.UAmount*shdr_rec::Size;
+        if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_SHDR_DATA_SEEK, seekPos)
+        if (file.read(shdr, shdr_rec::Size) != shdr_rec::Size) FILE_ERROR(PDTA_SHDR_DATA_READ)
         return true;
     }
     bool get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
     {
         SF2GeneratorAmount genVal;
-        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ /*USerial.print("could not get samplemode\n");*/ return defaultValue; }
+        if (get_gen_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ DebugPrintln("could not get samplemode"); return defaultValue; }
         
         return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
     }
@@ -379,33 +399,38 @@ namespace SF2::lazy_reader
         }
 
         File file = SD.open(SF2::filePath.c_str());
-        file.seek(sfbk->pdta.inst_position + inst_rec::Size*index + 20);
+        uint64_t seekPos = sfbk->pdta.inst_position + inst_rec::Size*index + 20;
+        if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_INST_DATA_SEEK, seekPos)
         uint16_t ibag_startIndex = 0;
         uint16_t ibag_endIndex = 0;
-        file.read(&ibag_startIndex, 2);
-        file.seek(20, SeekCur);
-        file.read(&ibag_endIndex, 2);
+        if ((lastReadCount = file.read(&ibag_startIndex, 2)) != 2) FILE_ERROR(PDTA_INST_DATA_READ)
+        // skipping next inst name
+        if (file.seek(20, SeekCur) == false) FILE_SEEK_ERROR(PDTA_INST_DATA_SKIP, 20)
+        if ((lastReadCount = file.read(&ibag_endIndex, 2)) != 2) FILE_ERROR(PDTA_INST_DATA_READ)
+        
+        DebugPrint_Text_Var("\nibag_start index: ", ibag_startIndex);
+        DebugPrintln_Text_Var(", ibag_end index: ", ibag_endIndex);
+        DebugPrint("\n");
+        seekPos = sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex;
+        if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_IBAG_DATA_SEEK, seekPos) //seek error to ibags
+        DebugPrint("igen_ndxs: ");
         uint16_t ibag_count = ibag_endIndex - ibag_startIndex; 
         uint16_t igen_ndxs[ibag_count+1]; // +1 because of the soundfont structure 
         uint16_t dummy = 0;
-        //USerial.print("\nibag_start index: "); USerial.print(ibag_startIndex);
-        //USerial.print(", ibag_end index: "); USerial.print(ibag_endIndex);  USerial.print("\n");
-        //USerial.print("\n");
-        if (file.seek(sfbk->pdta.ibag_position + bag_rec::Size*ibag_startIndex) == false) FILE_ERROR(PDTA_IBAG_DATA_SEEK) //{USerial.print("seek error to ibags\n"); file.close(); return false;}
-        //USerial.print("igen_ndxs: ");
         for (int i=0;i<ibag_count+1;i++)
         {
-            if (file.read(&igen_ndxs[i], 2) != 2) FILE_ERROR(PDTA_IBAG_DATA_READ) //{USerial.print("read error - while reading &igen_ndxs[i]\n"); file.close(); return false;}
-            if (file.read(&dummy, 2) != 2) FILE_ERROR(PDTA_IBAG_DATA_SKIP) //{USerial.print("read error - while reading dummy\n"); file.close(); return false;}; // imod not used
-            //USerial.print(igen_ndxs[i]);
-            //USerial.print(", ");
+            if ((lastReadCount = file.read(&igen_ndxs[i], 2)) != 2) FILE_ERROR(PDTA_IBAG_DATA_READ) //read error - while reading &igen_ndxs[i]
+            if ((lastReadCount = file.read(&dummy, 2)) != 2) FILE_ERROR(PDTA_IBAG_DATA_SKIP) //read error - while reading dummy
+            DebugPrint(igen_ndxs[i]);
+            DebugPrint(", ");
         }
-        //USerial.print("\n");
+        DebugPrint("\n");
         // store gen data in bags for faster access
         bag_of_gens bags[ibag_count];
 
         // search to the location for the first igen record
-        if (file.seek(sfbk->pdta.igen_position + igen_ndxs[0]*gen_rec::Size) == false) FILE_ERROR(PDTA_IGEN_DATA_SEEK)//{USerial.print("seek error to first igen record\n"); file.close(); return false;};
+        seekPos = sfbk->pdta.igen_position + igen_ndxs[0]*gen_rec::Size;
+        if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_IGEN_DATA_SEEK, seekPos) //seek error to first igen record
             
         for (int i=0;i<ibag_count;i++)
         {
@@ -415,47 +440,45 @@ namespace SF2::lazy_reader
             bags[i].items = new gen_rec[count];
             bags[i].count = count;
 
-            file.read(bags[i].items, gen_rec::Size*count); // TODO need error check
-            /* 
-            USerial.print("bag contents:\n");
+            if ((lastReadCount = file.read(bags[i].items, gen_rec::Size*count)) != gen_rec::Size*count) FILE_ERROR(PDTA_IGEN_DATA_READ)
+            
+            DebugPrint("bag contents:\n");
+#ifdef DEBUG
             for (int i2=0;i2<count;i2++)
             {
-                USerial.print("  sfGenOper:");
-                USerial.print((uint16_t)bags[i].items[i2].sfGenOper);
-                USerial.print(", value:");
-                USerial.println(bags[i].items[i2].genAmount.UAmount);
-            }*/
+                DebugPrint_Text_Var("  sfGenOper:", (uint16_t)bags[i].items[i2].sfGenOper);
+                DebugPrintln_Text_Var(", value:", bags[i].items[i2].genAmount.UAmount);
+            }
+#endif
             
         }
-        //USerial.print("temp storage in bags complete\n");
+        DebugPrint("temp storage in bags complete\n");
 
-        // TODO
-        // this is not actually true as i found one sf file without any global bag
-        // need to investigate the spec.
-        // according to the spec.
         // if the first zone ends with a sampleID gen type then there is not any global zone for that instrument
-        //if (bags[0].count == 0) return false; // failsafe for using: bags[0].lastItem()
         bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;
 
         inst.sample_count = globalExists?(ibag_count - 1):ibag_count;
 
         inst.sample_note_ranges = new uint8_t[inst.sample_count];
         inst.samples = new sample_header_temp[inst.sample_count];
-        //USerial.print("\nsample count: "); USerial.println(inst.sample_count);
+        DebugPrint("\nsample count: "); DebugPrint(inst.sample_count);
         for (int si=0;si<inst.sample_count;si++)
         {
             shdr_rec shdr;
-            //USerial.print("getting sample x: ");USerial.print(si); USerial.print("\n");
+            DebugPrintln_Text_Var("getting sample x: ", si);
             if (get_sample_header(file, bags, si, &shdr) == false) { 
-                inst.samples[si].invalid = true;
-                USerial.print("error - while getting sample header @ "); USerial.print(si); USerial.print("\n");
-                continue;
+                break; // classify the file as structually unsound
+                //inst.samples[si].invalid = true;
+                DebugPrintln_Text_Var("error - while getting sample header @ ", si);
+                //continue;
             }
-            //USerial.print("sample name: "); Helpers::printRawBytesSanitizedUntil(shdr.achSampleName, 20, '\0'); USerial.println();
-
-            //USerial.print("getting data\n");
+            DebugPrint("sample name: ");
+#ifdef DEBUG
+            Helpers::printRawBytesSanitizedUntil(shdr.achSampleName, 20, '\0');
+#endif
+            DebugPrintln();
+            DebugPrintln("getting data:");
             inst.sample_note_ranges[si] = get_key_range_end(bags, si);
-            inst.samples[si].invalid = false; // used later as a failsafe when getting data
             inst.samples[si].sample_start = shdr.dwStart;
             inst.samples[si].LOOP = get_sample_repeat(bags, si, false);
             inst.samples[si].SAMPLE_NOTE = get_sample_note(bags, si, shdr);
@@ -466,7 +489,7 @@ namespace SF2::lazy_reader
             inst.samples[si].LOOP_START = get_cooked_loop_start(bags, si, shdr);
             inst.samples[si].LOOP_END = get_cooked_loop_end(bags, si, shdr);
             inst.samples[si].INIT_ATTENUATION = get_decibel_value(bags, si, SFGenerator::initialAttenuation, 0, 0, 144) * -1;
-            //USerial.print("getting vol env\n");
+            DebugPrintln("getting vol env");
             // VOLUME ENVELOPE VALUES
             inst.samples[si].DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVolEnv, 0, 0);
             inst.samples[si].ATTACK_ENV = get_timecents_value(bags, si, SFGenerator::attackVolEnv, 1, 1);
@@ -474,13 +497,13 @@ namespace SF2::lazy_reader
             inst.samples[si].DECAY_ENV = get_timecents_value(bags, si, SFGenerator::decayVolEnv, 1, 1);
             inst.samples[si].RELEASE_ENV = get_timecents_value(bags, si, SFGenerator::releaseVolEnv, 1, 1);
             inst.samples[si].SUSTAIN_FRAC = get_decibel_value(bags, si, SFGenerator::sustainVolEnv, 0, 0, 144) * -1;
-            //USerial.print("getting vib vals\n");
+            DebugPrintln("getting vib vals");
             // VIRBRATO VALUES
             inst.samples[si].VIB_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayVibLFO, 0, 0);
             inst.samples[si].VIB_INC_ENV = get_hertz(bags, si, SFGenerator::freqVibLFO, 8.176, 0.1, 100);
             inst.samples[si].VIB_PITCH_INIT = get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000);
             inst.samples[si].VIB_PITCH_SCND = inst.samples[si].VIB_PITCH_INIT * -1; //get_pitch_cents(bags, si, SFGenerator::vibLfoToPitch, 0, -12000, 12000) * -1;
-            //USerial.print("getting mod vals\n");
+            DebugPrintln("getting mod vals");
             // MODULATION VALUES
             inst.samples[si].MOD_DELAY_ENV = get_timecents_value(bags, si, SFGenerator::delayModLFO, 0, 0);
             inst.samples[si].MOD_INC_ENV = get_hertz(bags, si, SFGenerator::freqModLFO, 8.176, 0.1, 100);
@@ -501,15 +524,15 @@ namespace SF2::lazy_reader
 
     void FreePrevSampleData()
     {
-        //USerial.print("try to free prev loaded sampledata\n");
+        DebugPrintln("try to free prev loaded sampledata");
         for (int i = 0;i<sample_count;i++)
         {
             if (samples[i].data != nullptr) {
-                //USerial.print("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data + "\n"));
+                DebugPrintln("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
                 extmem_free(samples[i].data);
             }
         }
-        //USerial.print("[OK]\n");
+        DebugPrintln("[OK]");
         delete[] samples;
     }
 
@@ -524,23 +547,19 @@ namespace SF2::lazy_reader
         } 
         samples = new sample_data[inst.sample_count];
         sample_count = inst.sample_count;
-        int totalSize = 0;
+        totalSampleDataSizeBytes = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
-            if (inst.samples[si].invalid) continue;
-            //USerial.print("reading sample: "); USerial.print(si); USerial.print("\n");
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
-            totalSize+=ary_length;
+            totalSampleDataSizeBytes+=ary_length*4;
             samples[si].data = nullptr; // clear the pointer so free above won't fail if prev. load was unsuccessful
         }
-        USerial.print("\ntotal size in bytes of current instrument samples inclusive padding: "); USerial.print(totalSize*4);  USerial.print("\n");
         int allocatedSize = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
-            if (inst.samples[si].invalid){ samples[si].data == nullptr; continue;}
-            //USerial.print("reading sample: "); USerial.print(si);  USerial.print("\n");
+            DebugPrintln_Text_Var("reading sample: ", si);
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
             int length_8 = length_32*4;
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
@@ -549,7 +568,7 @@ namespace SF2::lazy_reader
             samples[si].data = (uint32_t*)extmem_malloc(ary_length*4);
             if (samples[si].data == nullptr) {
                 lastError = Error::Errors::RAM_DATA_MALLOC;
-                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSize*4) + " bytes";
+                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
                 file.close();
                 FreePrevSampleData();
                 return false;
@@ -558,7 +577,8 @@ namespace SF2::lazy_reader
             if (file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2) == false) {
                 //lastError = "@ sample " +  String(si) + " could not seek to data location in file";
                 lastError = Error::Errors::SDTA_SMPL_DATA_SEEK;
-                lastErrorPosition = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
+                lastErrorPosition = file.position();
+                lastReadCount = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
                 file.close();
                 FreePrevSampleData();
                 return false;

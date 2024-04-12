@@ -63,7 +63,7 @@ namespace SF2
         sample_header* samples;
     };
     struct sample_header_temp { // rename it to sample_header_temp instead of sample_data_temp
-        bool invalid;
+        //bool invalid;
         // SAMPLE VALUES
         /** used to get final sample data from file*/
         uint32_t sample_start;

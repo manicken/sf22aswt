@@ -45,6 +45,7 @@ namespace SF2::Error
 		FOURCC = 1 << ERROR_TYPE_LOCATION_SHIFT,
 		SIZE = 2 << ERROR_TYPE_LOCATION_SHIFT,
         DATA = 3 << ERROR_TYPE_LOCATION_SHIFT,
+        BACK = 4 << ERROR_TYPE_LOCATION_SHIFT,
         INDEX = 0xD << ERROR_TYPE_LOCATION_SHIFT,
         UNKNOWN_BLOCK_SIZE = 0xE << ERROR_TYPE_LOCATION_SHIFT,
         UNKNOWN_BLOCK_DATA = 0xF << ERROR_TYPE_LOCATION_SHIFT,
@@ -141,6 +142,8 @@ namespace SF2::Error
         INFO_FOURCC_READ        = ERROR(INFO, FOURCC, READ), // read error - info subblock type
         INFO_FOURCC_INVALID     = ERROR(INFO, FOURCC, INVALID), // invalid - info subblock type
         INFO_DATA_SKIP          = ERROR(INFO, DATA, SEEKSKIP),
+        INFO_DATA_SEEK          = ERROR(INFO, DATA, SEEK),
+        INFO_BACK_SEEK          = ERROR(INFO, BACK, SEEK),
         INFO_UNKNOWN_BLOCK_SIZE_READ = ERROR(INFO, UNKNOWN_BLOCK_SIZE, READ), // read error - unknown info subblock size
         INFO_UNKNOWN_BLOCK_DATA_SKIP = ERROR(INFO, UNKNOWN_BLOCK_DATA, SEEKSKIP), // seek error - skipping unknown info subblock
         INFO_STRING_SIZE_READ   = ERROR(INFO, SIZE, READ), // the sub block is set later
@@ -172,6 +175,7 @@ namespace SF2::Error
 
         SDTA_FOURCC_READ        = ERROR(SDTA, FOURCC, READ), // read error - sdta subblock type
         SDTA_FOURCC_INVALID     = ERROR(SDTA, FOURCC, INVALID), // invalid - sdta subblock type
+        SDTA_BACK_SEEK          = ERROR(SDTA, BACK, SEEK),
         SDTA_UNKNOWN_BLOCK_SIZE_READ = ERROR(SDTA, UNKNOWN_BLOCK_SIZE, READ), // read error - unknown sdta subblock size
         SDTA_UNKNOWN_BLOCK_DATA_SKIP = ERROR(SDTA, UNKNOWN_BLOCK_DATA, SEEKSKIP), // seek error - skipping unknown sdta subblock
         SDTA_SMPL_SIZE_READ     = ERROR_SUB(SDTA, SMPL, SIZE, READ), // read error - smpl size
@@ -185,6 +189,7 @@ namespace SF2::Error
         
         PDTA_FOURCC_READ        = ERROR(PDTA, FOURCC, READ), // read error - pdta subblock type
         PDTA_FOURCC_INVALID     = ERROR(PDTA, FOURCC, INVALID), // invalid - pdta subblock type
+        PDTA_BACK_SEEK          = ERROR(PDTA, BACK, SEEK),
         PDTA_UNKNOWN_BLOCK_SIZE_READ = ERROR(PDTA, UNKNOWN_BLOCK_SIZE, READ), // read error - pdta subblock size
         PDTA_UNKNOWN_BLOCK_DATA_SKIP = ERROR(PDTA, UNKNOWN_BLOCK_DATA, SEEKSKIP), // seek error - skipping unknown pdta subblock
         
@@ -300,6 +305,7 @@ namespace SF2::Error
         (uint16_t)Type::FOURCC,
         (uint16_t)Type::SIZE,
         (uint16_t)Type::DATA,
+        (uint16_t)Type::BACK,
         (uint16_t)Type::INDEX,
         (uint16_t)Type::UNKNOWN_BLOCK_SIZE,
         (uint16_t)Type::UNKNOWN_BLOCK_DATA,
@@ -310,6 +316,7 @@ namespace SF2::Error
         "FOURCC",
         "SIZE",
         "DATA",
+        "BACK",
         "INDEX",
         "UNKNOWN_BLOCK_SIZE",
         "UNKNOWN_BLOCK_DATA",
@@ -466,6 +473,8 @@ namespace SF2::Error::Test
         Errors::INFO_FOURCC_READ,
         Errors::INFO_FOURCC_INVALID,
         Errors::INFO_DATA_SKIP,
+        Errors::INFO_DATA_SEEK,
+        Errors::INFO_BACK_SEEK,
         Errors::INFO_STRING_SIZE_READ,
         Errors::INFO_STRING_DATA_READ,
         //Errors::NONE,
@@ -496,6 +505,7 @@ namespace SF2::Error::Test
         //Errors::NONE,
         Errors::SDTA_FOURCC_READ,
         Errors::SDTA_FOURCC_INVALID,
+        Errors::SDTA_BACK_SEEK,
         Errors::SDTA_UNKNOWN_BLOCK_SIZE_READ,
         Errors::SDTA_UNKNOWN_BLOCK_DATA_SKIP,
         Errors::SDTA_SMPL_SIZE_READ,
@@ -509,6 +519,7 @@ namespace SF2::Error::Test
         //Errors::NONE,
         Errors::PDTA_FOURCC_READ,
         Errors::PDTA_FOURCC_INVALID,
+        Errors::PDTA_BACK_SEEK,
         Errors::PDTA_UNKNOWN_BLOCK_SIZE_READ,
         Errors::PDTA_UNKNOWN_BLOCK_DATA_SKIP,
         //Errors::NONE,
