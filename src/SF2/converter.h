@@ -10,30 +10,17 @@
 
 namespace SF2::converter
 {
-    // don't know if this function is really needed
-    // as the code @
-    // https://forum.pjrc.com/index.php?threads/wavetable-synthesis-from-sd-card.58735/
-    // sets the instrument directly from a cloned sample_data structure
-    AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data &data)
-    {
-        const AudioSynthWavetable::sample_data *sample_data = reinterpret_cast<const AudioSynthWavetable::sample_data*>(data.samples);
-
-        return {
-            data.sample_count,
-            data.sample_note_ranges,
-            sample_data
-        };
-    }
+    SF2::sample_header toFinal(SF2::sample_header_temp &sd);
 
     AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data_temp &data)
     {
         // must use a second struct to contain the data
         // as AudioSynthWavetable::sample_data members are const
-        SF2::sample_header *samples = new sample_header[data.sample_count+1];
+        SF2::sample_header *samples = new SF2::sample_header[data.sample_count+1];
         uint8_t *note_ranges = new uint8_t[data.sample_count+1];
         for (int i=0;i<data.sample_count;i++)
         {
-            samples[i] = data.samples[i].toFinal();
+            samples[i] = toFinal(data.samples[i]);//.toFinal();
             note_ranges[i] = data.sample_note_ranges[i];
         }
         // have one dummy empty sample so that AudioSynthWavetable don't crash while try to play notes outside of scope
@@ -43,28 +30,17 @@ namespace SF2::converter
         const AudioSynthWavetable::sample_data *sample_data = reinterpret_cast<const AudioSynthWavetable::sample_data*>(samples);
 
         return {
-            data.sample_count+1,
+            data.sample_count+(uint8_t)1,
             note_ranges,
             sample_data
         };
     }
 
-    void toFinal(instrument_data_temp &idt, instrument_data &id)
-    {
-        id.sample_count = idt.sample_count;
-        id.sample_note_ranges = idt.sample_note_ranges;
-        id.samples = new sample_header[idt.sample_count];
-        for (int i=0;i<idt.sample_count;i++)
-        {
-            id.samples[i] = idt.samples[i].toFinal();
-        }
-    }
-/*
-    sample_data toFinal(sample_data_temp &sd)
+    SF2::sample_header toFinal(SF2::sample_header_temp &sd)
     {
         return 
         {
-            (int16_t*)0, // sample data pointer, this will be reset after this function call as the data for the sample need to be loaded and handled outside this scope
+            (int16_t*)sd.sample,
             sd.LOOP, // LOOP
             sd.LENGTH_BITS, // LENGTH_BITS
             (1 << (32 - sd.LENGTH_BITS)) * WAVETABLE_CENTS_SHIFT(sd.CENTS_OFFSET) * sd.SAMPLE_RATE / WAVETABLE_NOTE_TO_FREQUENCY(sd.SAMPLE_NOTE) / AUDIO_SAMPLE_RATE_EXACT + 0.5f, // PER_HERTZ_PHASE_INCREMENT
@@ -93,6 +69,6 @@ namespace SF2::converter
             int32_t(UINT16_MAX * (1.0 - WAVETABLE_DECIBEL_SHIFT(sd.MOD_AMP_SCND_GAIN))) * 4, // MODULATION_AMPLITUDE_FINAL_GAIN
         };
     }
-*/
+
 
 }

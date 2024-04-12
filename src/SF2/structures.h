@@ -11,8 +11,6 @@
  * size is the block size
  * */
 
-#define USerial SerialUSB1
-
 namespace SF2
 {
     /** make it easier to manage sample datas*/
@@ -137,7 +135,7 @@ namespace SF2
           ret.append("\n, MOD_AMP_SCND_GAIN:"); ret.append(MOD_AMP_SCND_GAIN);
           return ret;
         }
-
+/*
         sample_header toFinal()
         {
             return 
@@ -170,7 +168,7 @@ namespace SF2
                 int32_t(UINT16_MAX * (WAVETABLE_DECIBEL_SHIFT(MOD_AMP_INIT_GAIN) - 1.0)) * 4, // MODULATION_AMPLITUDE_INITIAL_GAIN
                 int32_t(UINT16_MAX * (1.0 - WAVETABLE_DECIBEL_SHIFT(MOD_AMP_SCND_GAIN))) * 4, // MODULATION_AMPLITUDE_FINAL_GAIN
             };
-        }
+        }*/
     };
     struct instrument_data_temp {
         String filePath;

@@ -58,6 +58,21 @@ AudioConnection voiceConnections[VOICE_COUNT];
 AudioConnection toI2s_1(mixer, 0, i2sOut, 0);
 AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
 //AudioOutputUSB usb;
+
+// the following are gonna be used when 
+// this project is converted into using
+// a single serial port only
+// so that usb_desc don't need to be changed
+// when the client app rx theese it will close the comport
+// so the programmer can access it
+void USerialSendAck_OK()
+{
+    USerial.println("ACK_OK");
+}
+void USerialSendAck_KO()
+{
+    USerial.println("ACK_KO");
+}
 void InitVoices()
 {
     float mixerGlobalGain = 1.0f/8.0f;//(float)(VOICE_COUNT/4);
@@ -79,7 +94,7 @@ void autoGain()
     }
     if (numPlaying == 0) numPlaying = 1;
     float newGain = 1.0f/(float)numPlaying;
-    USerial.println(newGain);
+    //USerial.println(newGain);
     for (int i=0;i<128;i++)
     {
         mixer.gain(i, newGain);
@@ -181,7 +196,7 @@ void setup()
     USerial.begin(115200);
     delay(500); // give host a little extra time to auto reconnect
 
-    USerial.println("USB serial port 2 initialized!"); // try to see if i can receive this
+    USerial.println("USB serial port initialized!"); // try to see if i can receive this
     //Serial1.begin(115200);
     //Serial2.begin(115200);
     if (!SD.begin(BUILTIN_SDCARD)) {
@@ -203,6 +218,7 @@ void setup()
         outputCtrl.volume(1.0f);
 
     USerial.println("setup end"); // try to see if i can receive this
+    USerialSendAck_OK();
 }
 long lastMs = 0;
 void loop()
@@ -248,17 +264,16 @@ void processSerialCommand()
         USerial.print("list files took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.print(" ms\n");
-
-        
     }
     else if (strncmp(serialRxBuffer, "read_file:", 10) == 0)
     {
-        if (bytesRead <= 11) { USerial.print("read_file path parameter missing\n"); return; }
+        if (bytesRead <= 11) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
         
         long startTime = micros();
         if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)
         {
             printSF2ErrorInfo();
+            USerialSendAck_KO();
             return;
             // TODO. open and print a part of file contents if possible
             // using lastReadCount and position plus reading some bytes extra backwards
@@ -288,23 +303,25 @@ void processSerialCommand()
         SF2::readInfoBlock(file, info);
         file.close();
         USerial.println(info.ToString());
+        USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
         long startTime = micros();
-        if (SF2reader::lastReadWasOK == false) { USerial.println("file not open or last read was not ok"); return; }
+        if (SF2reader::lastReadWasOK == false) {
+            USerial.println("file not open or last read was not ok");
+            USerialSendAck_KO();
+            return;
+        }
 
-        USerial.print("json:{\"instruments\":[");//, SF2reader::sfbk->pdta.inst_count);
+        USerial.print("json:{\"instruments\":[");
         File file = SD.open(SF2::filePath.c_str());
         file.seek(SF2reader::sfbk->pdta.inst_position);
         SF2::inst_rec inst;
         
         for (uint32_t i = 0; i < SF2reader::sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
         {
-            
             file.read(&inst, 22);
-            //file.read(&inst.wInstBagNdx, 2);
-            //Helpers::printRawBytes(SF2reader::sfbk->pdta.inst[i].achInstName, 20);
             USerial.print("{\"name\":\"");
             Helpers::printRawBytesUntil(inst.achInstName, 20, '\0');
             USerial.print("\",\"ndx\":");
@@ -317,24 +334,24 @@ void processSerialCommand()
         USerial.print("list instruments took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
-        
+
     }
     else if (strncmp(serialRxBuffer, "load_instrument:", 16) == 0)
     {
-        if (bytesRead <= 16) { USerial.print(&serialRxBuffer[16]); USerial.println("\nload_instrument index parameter missing"); return; }
+        if (bytesRead <= 16) { USerial.print(&serialRxBuffer[16]); USerial.println("\nload_instrument index parameter missing"); USerialSendAck_KO();return; }
         char* endptr;
         uint index = std::strtoul(&serialRxBuffer[16], &endptr, 10);
-        if (&serialRxBuffer[16] == endptr) { USerial.println("load_instrument index parameter don't start with digit"); return; }
-        else if (*endptr != '\0') { USerial.println("load_instrument index parameter non integer characters detected"); return; }
+        if (&serialRxBuffer[16] == endptr) { USerial.println("load_instrument index parameter don't start with digit"); USerialSendAck_KO();return; }
+        else if (*endptr != '\0') { USerial.println("load_instrument index parameter non integer characters detected"); USerialSendAck_KO(); return; }
 
         long startTime = micros();
-        //if (doc.containsKey("index") == false) {USerial.print("load_instrument index parameter missing\n");}
-        //int index = doc["index"];
+        
         SF2::instrument_data_temp inst_temp = {0,0,nullptr};
         
         if (SF2reader::load_instrument(index, inst_temp) == false)
         {
             printSF2ErrorInfo();
+            USerialSendAck_KO();
             return;
         }
         //USerial.print("instrument load presets complete\n");
@@ -354,6 +371,7 @@ void processSerialCommand()
         if (SF2::lazy_reader::ReadSampleDataFromFile(inst_temp) == false)
         {
             printSF2ErrorInfo();
+            USerialSendAck_KO();
             return;
         }
         USerial.print("current instrument sample data size inclusive padding: ");
@@ -375,11 +393,14 @@ void processSerialCommand()
         if (ExtMemTest::exec() == false)
         {
             USerial.println("Ext memory fail");
+            USerialSendAck_KO();
         }
+        USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "print_all_errors", 16) == 0)
     {
         SF2::Error::Test::ExecTest();
+        USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "ping", 4) == 0) // used to auto detect comport
     {
@@ -388,6 +409,7 @@ void processSerialCommand()
     else
     {
         USerial.print("info - command not found:'"); USerial.print(serialRxBuffer); USerial.println("'");
+        USerialSendAck_KO();
     }
 }
 
