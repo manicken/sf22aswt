@@ -2,7 +2,7 @@
 
 #include <Arduino.h>
 
-#define USerial SerialUSB1
+#define USerial SerialUSB
 
 namespace ExtMemTest
 {
