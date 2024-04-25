@@ -9,6 +9,16 @@
 
 #define USerial SerialUSB1
 
+#define USE_EXTMEM
+
+#ifdef USE_EXTMEM
+  #define SAMPLEDATA_MALLOC extmem_malloc
+  #define SAMPLEDATA_FREE   extmem_free
+#else
+  #define SAMPLEDATA_MALLOC malloc
+  #define SAMPLEDATA_FREE   free
+#endif
+
 
 #ifdef DEBUG
 #ifndef USerial
@@ -127,7 +137,7 @@ namespace SF2
         {
             if (samples[i].data != nullptr) {
                 DebugPrintln("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
-                extmem_free(samples[i].data);
+                SAMPLEDATA_FREE(samples[i].data);
             }
         }
         DebugPrintln("[OK]");
@@ -163,7 +173,7 @@ namespace SF2
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             
-            samples[si].data = (uint32_t*)extmem_malloc(ary_length*4);
+            samples[si].data = (uint32_t*)SAMPLEDATA_MALLOC(ary_length*4);
             if (samples[si].data == nullptr) {
                 lastError = Error::Errors::RAM_DATA_MALLOC;
                 lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
