@@ -10,15 +10,16 @@ then the usage would be:<br>
 <br>
 void sfExample()<br>
 {<br>
-&nbsp;&nbsp;if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)<br>
+&nbsp;&nbsp;if (SF2reader::ReadFile("filename.sf2") == false)<br>
 &nbsp;&nbsp;{<br>
 &nbsp;&nbsp;&nbsp;&nbsp;SF2::printSF2ErrorInfo();<br>
 &nbsp;&nbsp;&nbsp;&nbsp;USerialSendAck_KO();<br>
 &nbsp;&nbsp;&nbsp;&nbsp;return;<br>
 &nbsp;&nbsp;}<br>
 &nbsp;&nbsp;SF2::instrument_data_temp inst_temp = {0,0,nullptr};<br>
+&nbsp;&nbsp;int instrumentIndex = 0;<br>
 <br>
-&nbsp;&nbsp;if (SF2reader::load_instrument(index, inst_temp) == false)<br>
+&nbsp;&nbsp;if (SF2reader::load_instrument(instrumentIndex, inst_temp) == false)<br>
 &nbsp;&nbsp;{<br>
 &nbsp;&nbsp;&nbsp;&nbsp;SF2::printSF2ErrorInfo();<br>
 &nbsp;&nbsp;&nbsp;&nbsp;USerialSendAck_KO();<br>
