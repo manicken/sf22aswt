@@ -363,12 +363,11 @@ void processSerialCommand()
         USerial.print("load instrument configuration took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
-        
 
         //USerial.print("Start to load sample data from file\n");
         startTime = micros();
         
-        if (SF2::lazy_reader::ReadSampleDataFromFile(inst_temp) == false)
+        if (SF2::ReadSampleDataFromFile(inst_temp) == false)
         {
             printSF2ErrorInfo();
             USerialSendAck_KO();

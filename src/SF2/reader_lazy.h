@@ -7,25 +7,6 @@
 #include "helpers.h"
 #include "common.h"
 
-
-
-#ifdef DEBUG
-  #define USerial SerialUSB1
-  #define DebugPrint(args) USerial.print(args);
-  #define DebugPrintln(args) USerial.println(args);
-  #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
-  #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
-  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
-  #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
-#else
-  #define DebugPrint(args)
-  #define DebugPrintln(args)
-  #define DebugPrint_Text_Var(text, var)
-  #define DebugPrintln_Text_Var(text, var)
-  #define DebugPrintFOURCC(fourCC)
-  #define DebugPrintFOURCC_size(size)
-#endif
-
 namespace SF2::lazy_reader
 {
     sfbk_rec_lazy *sfbk;
@@ -479,7 +460,7 @@ namespace SF2::lazy_reader
             DebugPrintln();
             DebugPrintln("getting data:");
             inst.sample_note_ranges[si] = get_key_range_end(bags, si);
-            inst.samples[si].sample_start = shdr.dwStart;
+            inst.samples[si].sample_start = shdr.dwStart*2 + sfbk->sdta.smpl.position;
             inst.samples[si].LOOP = get_sample_repeat(bags, si, false);
             inst.samples[si].SAMPLE_NOTE = get_sample_note(bags, si, shdr);
             inst.samples[si].CENTS_OFFSET = get_fine_tuning(bags, si);
@@ -516,87 +497,6 @@ namespace SF2::lazy_reader
         // Deallocate memory for bags_of_gens
         for (int i = 0; i < ibag_count; i++) {
             delete[] bags[i].items; // Deallocate memory for the array of pointers
-        }
-        
-        file.close();
-        return true;
-    }
-
-    void FreePrevSampleData()
-    {
-        DebugPrintln("try to free prev loaded sampledata");
-        for (int i = 0;i<sample_count;i++)
-        {
-            if (samples[i].data != nullptr) {
-                DebugPrintln("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
-                extmem_free(samples[i].data);
-            }
-        }
-        DebugPrintln("[OK]");
-        delete[] samples;
-    }
-
-    bool ReadSampleDataFromFile(instrument_data_temp &inst)
-    {
-        clearErrors();
-
-        File file = SD.open(SF2::filePath.c_str());
-        if (!file) {lastError = Error::Errors::FILE_NOT_OPEN; return false;}
-        if (samples != nullptr) {
-            FreePrevSampleData();
-        } 
-        samples = new sample_data[inst.sample_count];
-        sample_count = inst.sample_count;
-        totalSampleDataSizeBytes = 0;
-        for (int si=0;si<inst.sample_count;si++)
-        {
-            int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
-            int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
-            int ary_length = length_32 + pad_length;
-            totalSampleDataSizeBytes+=ary_length*4;
-            samples[si].data = nullptr; // clear the pointer so free above won't fail if prev. load was unsuccessful
-        }
-        int allocatedSize = 0;
-        for (int si=0;si<inst.sample_count;si++)
-        {
-            DebugPrintln_Text_Var("reading sample: ", si);
-            int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
-            int length_8 = length_32*4;
-            int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
-            int ary_length = length_32 + pad_length;
-            
-            samples[si].data = (uint32_t*)extmem_malloc(ary_length*4);
-            if (samples[si].data == nullptr) {
-                lastError = Error::Errors::RAM_DATA_MALLOC;
-                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
-                file.close();
-                FreePrevSampleData();
-                return false;
-            }
-
-            if (file.seek(sfbk->sdta.smpl.position + inst.samples[si].sample_start*2) == false) {
-                //lastError = "@ sample " +  String(si) + " could not seek to data location in file";
-                lastError = Error::Errors::SDTA_SMPL_DATA_SEEK;
-                lastErrorPosition = file.position();
-                lastReadCount = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
-                file.close();
-                FreePrevSampleData();
-                return false;
-            }
-            if ((lastReadCount = file.readBytes((char*)samples[si].data, length_8)) != length_8) {
-                //lastError = "@ sample " +  String(si) + " could not read sample data from file, wanted:" + length_8 + " but could only read " + lastReadCount;
-                lastError = Error::Errors::SDTA_SMPL_DATA_READ;
-                lastErrorPosition = sfbk->sdta.smpl.position + inst.samples[si].sample_start*2;
-                file.close();
-                FreePrevSampleData();
-                return false;
-            }
-            for (int i = length_32; i < ary_length;i++)
-            {
-                samples[si].data[i] = 0x00000000;
-            }
-            inst.samples[si].sample = (int16_t*)samples[si].data;
-            allocatedSize+=ary_length;
         }
         
         file.close();

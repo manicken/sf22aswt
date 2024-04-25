@@ -63,7 +63,8 @@ namespace SF2
     struct sample_header_temp { // rename it to sample_header_temp instead of sample_data_temp
         //bool invalid;
         // SAMPLE VALUES
-        /** used to get final sample data from file*/
+        /** used to get final sample data from file,
+         *  and is the direct location in the file to get the sample data */
         uint32_t sample_start;
         /** pointer to sample data when loaded into ram*/
         const int16_t* sample;
@@ -171,7 +172,7 @@ namespace SF2
         }*/
     };
     struct instrument_data_temp {
-        String filePath;
+        //String filePath; //use in a future version of SF reader
         uint8_t sample_count;
         uint8_t* sample_note_ranges;
         sample_header_temp* samples;
