@@ -67,6 +67,15 @@ namespace SF2
     #define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
     #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (Error::Errors)((uint16_t)lastError & (uint16_t)SF2::Error::ROOT_TYPE::SUB_TYPE);
     
+    void printSF2ErrorInfo()
+    {
+        SF2::Error::printError(SF2::lastError); USerial.print("\n");
+        USerial.println(SF2::lastErrorStr);
+        USerial.print(" @ position: ");
+        USerial.print(SF2::lastErrorPosition);
+        USerial.print(", lastReadCount: ");
+        USerial.print(SF2::lastReadCount); USerial.print("\n");
+    }
 
     bool ReadStringUsingLeadingSize(File &file, String& string)
     {

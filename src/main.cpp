@@ -233,15 +233,7 @@ void loop()
     usbMIDI.read();
 }
 
-void printSF2ErrorInfo()
-{
-    SF2::Error::printError(SF2::lastError); USerial.print("\n");
-    USerial.println(SF2::lastErrorStr);
-    USerial.print(" @ position: ");
-    USerial.print(SF2::lastErrorPosition);
-    USerial.print(", lastReadCount: ");
-    USerial.print(SF2::lastReadCount); USerial.print("\n");
-}
+
 
 void processSerialCommand()
 {
@@ -272,7 +264,7 @@ void processSerialCommand()
         long startTime = micros();
         if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)
         {
-            printSF2ErrorInfo();
+            SF2::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
             // TODO. open and print a part of file contents if possible
@@ -350,7 +342,7 @@ void processSerialCommand()
         
         if (SF2reader::load_instrument(index, inst_temp) == false)
         {
-            printSF2ErrorInfo();
+            SF2::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
@@ -369,7 +361,7 @@ void processSerialCommand()
         
         if (SF2::ReadSampleDataFromFile(inst_temp) == false)
         {
-            printSF2ErrorInfo();
+            SF2::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
