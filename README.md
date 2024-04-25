@@ -10,34 +10,32 @@ then the usage would be:<br>
 <br>
 void sfExample()<br>
 {<br>
-  if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)<br>
-  {<br>
-    SF2::printSF2ErrorInfo();<br>
-    USerialSendAck_KO();<br>
-    return;<br>
-    // TODO. open and print a part of file contents if possible<br>
-    // using lastReadCount and position plus reading some bytes extra backwards<br>
-  }<br>
-  SF2::instrument_data_temp inst_temp = {0,0,nullptr};<br>
-        <br>
-        if (SF2reader::load_instrument(index, inst_temp) == false)<br>
-        {<br>
-            SF2::printSF2ErrorInfo();<br>
-            USerialSendAck_KO();<br>
-            return;<br>
-        }<br>
-        if (SF2::ReadSampleDataFromFile(inst_temp) == false)<br>
-        {<br>
-            SF2::printSF2ErrorInfo();<br>
-            USerialSendAck_KO();<br>
-            return;<br>
-        }<br>
-        AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp);<br>
-        SetInstrument(wt_inst);<br>
+&nbsp;&nbsp;if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;SF2::printSF2ErrorInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;USerialSendAck_KO();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;SF2::instrument_data_temp inst_temp = {0,0,nullptr};<br>
+<br>
+&nbsp;&nbsp;if (SF2reader::load_instrument(index, inst_temp) == false)<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;SF2::printSF2ErrorInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;USerialSendAck_KO();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;if (SF2::ReadSampleDataFromFile(inst_temp) == false)<br>
+&nbsp;&nbsp;{<br>
+&nbsp;&nbsp;&nbsp;&nbsp;SF2::printSF2ErrorInfo();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;USerialSendAck_KO();<br>
+&nbsp;&nbsp;&nbsp;&nbsp;return;<br>
+&nbsp;&nbsp;}<br>
+&nbsp;&nbsp;AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp);<br>
+&nbsp;&nbsp;SetInstrument(wt_inst);<br>
 }<br>
 setup()<br>
 {<br>
-  sfExample();
+&nbsp;&nbsp;sfExample();
 }<br>
 <br>
 loop()<br>
