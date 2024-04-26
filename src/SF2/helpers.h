@@ -1,7 +1,11 @@
 #pragma once
 
 #include <Arduino.h>
+
+#ifndef USerial
 #define USerial SerialUSB
+#endif
+
 namespace Helpers
 {
     void printRawBytes(const char* bytes, size_t length)

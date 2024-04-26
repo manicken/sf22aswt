@@ -1,11 +1,12 @@
 #pragma once
 
 #include <Arduino.h>
+#include <SD.h>
 #include "enums.h"
 #include "structures.h"
-#include <SD.h>
 #include "helpers.h"
 #include "common.h"
+#include "converter.h"
 
 #ifdef DEBUG
   #define USerial SerialUSB1

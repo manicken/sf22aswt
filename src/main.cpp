@@ -5,66 +5,48 @@
 #include <SD.h>
 #include <SerialFlash.h>
 #include <MIDI.h>
+#include <ArduinoJson.h>
 #include "ledblinker.h"
 #include "Mixer128.h"
 
-#include "SF2/helpers.h"
-#include "SF2/common.h"
-#include "SF2/converter.h"
-#include "SF2/error_enums.h"
-
 #include "ExtMemTest.h"
 
-#include <ArduinoJson.h>
-
-const float noteFreqs[128] = {8.176, 8.662, 9.177, 9.723, 10.301, 10.913, 11.562, 12.25, 12.978, 13.75, 14.568, 15.434, 16.352, 17.324, 18.354, 19.445, 20.602, 21.827, 23.125, 24.5, 25.957, 27.5, 29.135, 30.868, 32.703, 34.648, 36.708, 38.891, 41.203, 43.654, 46.249, 48.999, 51.913, 55, 58.27, 61.735, 65.406, 69.296, 73.416, 77.782, 82.407, 87.307, 92.499, 97.999, 103.826, 110, 116.541, 123.471, 130.813, 138.591, 146.832, 155.563, 164.814, 174.614, 184.997, 195.998, 207.652, 220, 233.082, 246.942, 261.626, 277.183, 293.665, 311.127, 329.628, 349.228, 369.994, 391.995, 415.305, 440, 466.164, 493.883, 523.251, 554.365, 587.33, 622.254, 659.255, 698.456, 739.989, 783.991, 830.609, 880, 932.328, 987.767, 1046.502, 1108.731, 1174.659, 1244.508, 1318.51, 1396.913, 1479.978, 1567.982, 1661.219, 1760, 1864.655, 1975.533, 2093.005, 2217.461, 2349.318, 2489.016, 2637.02, 2793.826, 2959.955, 3135.963, 3322.438, 3520, 3729.31, 3951.066, 4186.009, 4434.922, 4698.636, 4978.032, 5274.041, 5587.652, 5919.911, 6271.927, 6644.875, 7040, 7458.62, 7902.133, 8372.018, 8869.844, 9397.273, 9956.063, 10548.08, 11175.3, 11839.82, 12543.85};
-
-
+#ifndef USerial
 #define USerial SerialUSB
+#endif
 
-//#include "SF2/reader.h"
-//#define SF2reader SF2::reader
+#define USE_LAZY_READER
+
+#ifndef USE_LAZY_READER
+// this is currently not fully implemented
+// as both list_instruments and load_instrument is missing from 
+// reader.h, and is only included for future use
+// when more ram is available or for specific demands
+#include "SF2/reader.h"
+#define SF2reader SF2::reader
+#else
 #include "SF2/reader_lazy.h"
 #define SF2reader SF2::lazy_reader
+#endif
+
 #define VOICE_COUNT 128
 
 AudioSynthWavetable wavetable[VOICE_COUNT];
+AudioSynthWavetable::instrument_data *wt_inst = nullptr;
 int notes[VOICE_COUNT];
 bool sustain[VOICE_COUNT];
-//bool sustainActive=false;
-//AudioSynthWaveform waveform;
 
 AudioMixer128 mixer;
 
-AudioControlSGTL5000             outputCtrl;
+AudioControlSGTL5000 outputCtrl;
 
-//AudioOutputUSB usbOut;
 AudioOutputI2S i2sOut;
-/*
-AudioConnection ac(waveform, 0, usbOut, 0);
-AudioConnection ac2(waveform, 0, usbOut, 1);
 
-AudioConnection ac3(waveform, 0, i2sOut, 0);
-AudioConnection ac4(waveform, 0, i2sOut, 1);
-*/
 AudioConnection voiceConnections[VOICE_COUNT];
-//AudioConnection toMix_1(wavetable[0], 0, mixer, 0);
-//AudioConnection toMix_2(wavetable[1], 0, mixer, 1);
-//AudioConnection toMix_3(wavetable[2], 0, mixer, 2);
-//AudioConnection toMix_4(wavetable[3], 0, mixer, 3);
-//AudioConnection toUsb_1(mixer, 0, usbOut, 0);
-//AudioConnection toUsb_2(mixer, 0, usbOut, 1);
 
 AudioConnection toI2s_1(mixer, 0, i2sOut, 0);
 AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
-//AudioOutputUSB usb;
 
-// the following are gonna be used when 
-// this project is converted into using
-// a single serial port only
-// so that usb_desc don't need to be changed
-// when the client app rx theese it will close the comport
-// so the programmer can access it
 void USerialSendAck_OK()
 {
     USerial.println("ACK_OK");
@@ -75,6 +57,7 @@ void USerialSendAck_KO()
 }
 void InitVoices()
 {
+    // TODO.better mixer for mixin all wavetable outputs
     float mixerGlobalGain = 1.0f/8.0f;//(float)(VOICE_COUNT/4);
     for (int i=0;i<VOICE_COUNT;i++)
     {
@@ -102,8 +85,10 @@ void autoGain()
 }
 void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
 {
-    for (int i=0;i<VOICE_COUNT;i++)
+    for (int i=0;i<VOICE_COUNT;i++) {
+        
         wavetable[i].setInstrument(inst);
+    }
 }
 void activateSustain()
 {
@@ -116,7 +101,6 @@ void activateSustain()
 
 void deactivateSustain()
 {
-    //sustainActive = false;
     for (int i=0;i<VOICE_COUNT;i++) {
         if (notes[i] != -1 && sustain[i] == true) {
             wavetable[i].stop();
@@ -211,29 +195,20 @@ void setup()
     usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
     usbMIDI.setHandleControlChange(usbMidi_ControlChange);
     usbMIDI.setHandleSysEx(usbMidi_SysEx);
-    
 
-    //waveform.begin(0, 50, WAVEFORM_SQUARE);
     outputCtrl.enable();
-        outputCtrl.volume(1.0f);
+    outputCtrl.volume(1.0f);
 
     USerial.println("setup end"); // try to see if i can receive this
     USerialSendAck_OK();
 }
-long lastMs = 0;
+
 void loop()
 {
-    /*if ((millis() - lastMs) > 1000)
-    {
-        lastMs = millis();
-        SerialUSB1.print("SerialUSB1\n");
-    }*/
     ledBlinkTask();
     processSerialCommand();
     usbMIDI.read();
 }
-
-
 
 void processSerialCommand()
 {
@@ -340,7 +315,7 @@ void processSerialCommand()
         
         SF2::instrument_data_temp inst_temp = {0,0,nullptr};
         
-        if (SF2reader::load_instrument(index, inst_temp) == false)
+        if (SF2reader::load_instrument_data(index, inst_temp) == false)
         {
             SF2::printSF2ErrorInfo();
             USerialSendAck_KO();
@@ -373,10 +348,64 @@ void processSerialCommand()
         USerial.print("load instrument sample data took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
+        // copy the old instrument_data pointer so we can delete the used data later
+        AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
 
-        AudioSynthWavetable::instrument_data wt_inst = SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp);
-        SetInstrument(wt_inst);
+        wt_inst = new AudioSynthWavetable::instrument_data(SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
+        SetInstrument(*wt_inst);
+        // delete prev inst data if exists
+        // Check if wt_inst_old is not nullptr and delete the memory it's pointing to
+        if(wt_inst_old != nullptr)
+        {
+            USerial.println("deleting prev inst.");
+            delete wt_inst_old;
+            wt_inst_old = nullptr; // It's a good practice to set deleted pointers to nullptr
+        }
 
+        USerial.println("json:{'cmd':'instrument_loaded'}");
+    }
+    else if (strncmp(serialRxBuffer, "load_instrument_from_file:", 26) == 0)
+    {
+        // the index is a zeropadded 5 digit number followed by a : (for clarification)
+        if (bytesRead <= 27) { USerial.print(&serialRxBuffer[26]); USerial.println("\nload_instrument_from_file index parameter missing"); USerialSendAck_KO();return; }
+        char* endptr;
+        uint instrumentIndex = std::strtoul(&serialRxBuffer[26], &endptr, 10);
+        if (&serialRxBuffer[26] == endptr) { USerial.println("load_instrument_from_file index parameter don't start with digit"); USerialSendAck_KO();return; }
+        //else if (*endptr != ':') { USerial.println("load_instrument_from_file  non integer characters detected"); USerialSendAck_KO(); return; }
+
+
+        if (bytesRead <= (26+6)) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
+        //int instrumentIndex = 0; // TODO make this a parameter
+        long startTime = micros();
+
+        // print some debug info:
+        USerial.print("trying to load file:"); USerial.println(&serialRxBuffer[26+6]);
+        USerial.print("instrument index:"); USerial.println(instrumentIndex);
+
+        // copy the old instrument_data pointer so we can delete the used data later
+        AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
+        
+        if (SF2::lazy_reader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &wt_inst) == false)
+        {
+            USerial.println("load_first_instrument_from_file error!");
+            USerialSendAck_KO();
+            return;
+        }
+        
+        SetInstrument(*wt_inst);
+        // delete prev inst data if exists
+        // Check if wt_inst_old is not nullptr and delete the memory it's pointing to
+        if(wt_inst_old != nullptr)
+        {
+            USerial.println("deleting prev inst.");
+            delete wt_inst_old;
+            wt_inst_old = nullptr; // It's a good practice to set deleted pointers to nullptr
+        }
+        USerial.println("load_first_instrument_from_file OK");
+        long endTime = micros();
+        USerial.print("  took: ");
+        USerial.print((float)(endTime-startTime)/1000.0f);
+        USerial.println(" ms");
         USerial.println("json:{'cmd':'instrument_loaded'}");
     }
     else if (strncmp(serialRxBuffer, "exec_ext_mem_test", 17) == 0)

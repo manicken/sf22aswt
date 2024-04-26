@@ -1,11 +1,13 @@
 #pragma once
 
 #include <Arduino.h>
-#include "enums.h"
-#include "structures.h"
 #include <SD.h>
-#include "helpers.h"
+
 #include "common.h"
+#include "structures.h"
+#include "enums.h"
+#include "helpers.h"
+#include "converter.h"
 
 namespace SF2::lazy_reader
 {
@@ -368,8 +370,12 @@ namespace SF2::lazy_reader
         }
         return length_bits;
     }
-
-    bool load_instrument(uint index, SF2::instrument_data_temp &inst)
+    /**
+     * this function do only load the sample preset headers for the instrument
+     * to load the actual sample data the function SF2::ReadSampleDataFromFile
+     * @'common.h' should be used
+    */
+    bool load_instrument_data(uint index, SF2::instrument_data_temp &inst)
     {
         clearErrors();
 
@@ -500,6 +506,43 @@ namespace SF2::lazy_reader
         }
         
         file.close();
+        return true;
+    }
+
+    /**
+     * this is mostly intended as a demo or to quickly use this library
+    */
+    bool load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id)
+    {
+        
+        if (ReadFile(filePath) == false)
+        {
+            USerial.println("Read file error:");
+            SF2::printSF2ErrorInfo();
+            return false;
+        }
+        SF2::instrument_data_temp inst_temp = {0,0,nullptr};
+
+        if (load_instrument_data(instrumentIndex, inst_temp) == false)
+        {
+            USerial.println("load_instrument_data error:");
+            SF2::printSF2ErrorInfo();
+            return false;
+        }
+        if (SF2::ReadSampleDataFromFile(inst_temp) == false)
+        {
+            USerial.println("ReadSampleDataFromFile error:");
+            SF2::printSF2ErrorInfo();
+            return false;
+        }
+        AudioSynthWavetable::instrument_data* new_inst = new AudioSynthWavetable::instrument_data(SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
+        if (new_inst == nullptr) // failsafe
+        {
+            USerial.println("convert to AudioSynthWavetable::instrument_data error!");
+            return false;
+        }
+        
+        *aswt_id = new_inst;
         return true;
     }
 }

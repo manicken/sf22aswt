@@ -7,7 +7,9 @@
 #include "structures.h"
 #include "helpers.h"
 
+#ifndef USerial
 #define USerial SerialUSB1
+#endif
 
 #define USE_EXTMEM
 
