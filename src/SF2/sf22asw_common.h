@@ -2,10 +2,10 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include "enums.h"
-#include "error_enums.h"
-#include "structures.h"
-#include "helpers.h"
+#include "sf22asw_enums.h"
+#include "sf22asw_error_enums.h"
+#include "sf22asw_structures.h"
+#include "sf22asw_helpers.h"
 
 #ifndef USerial
 #define USerial SerialUSB1

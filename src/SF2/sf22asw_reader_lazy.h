@@ -3,11 +3,11 @@
 #include <Arduino.h>
 #include <SD.h>
 
-#include "common.h"
-#include "structures.h"
-#include "enums.h"
-#include "helpers.h"
-#include "converter.h"
+#include "sf22asw_common.h"
+#include "sf22asw_structures.h"
+#include "sf22asw_enums.h"
+#include "sf22asw_helpers.h"
+#include "sf22asw_converter.h"
 
 namespace SF2::lazy_reader
 {
@@ -252,7 +252,7 @@ namespace SF2::lazy_reader
         }
         return true;
     }
-
+    // TODO move theese functions to a own namespace for clarification
     bool get_gen_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
     {
         bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;

@@ -3,10 +3,10 @@
 
 #include <Arduino.h>
 #include <Audio.h>
-#include "enums.h"
-#include "structures.h"
-#include "helpers.h"
-#include "common.h"
+#include "sf22asw_enums.h"
+#include "sf22asw_structures.h"
+#include "sf22asw_helpers.h"
+#include "sf22asw_common.h"
 
 namespace SF2::converter
 {

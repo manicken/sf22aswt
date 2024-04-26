@@ -1,15 +1,3 @@
-# sf2Reader
-Sound Font 2 reader for c++ specially designed to use together with Teensy AudioSynthWavetable<br>
-<br>
-note. currently it's a work in progress<br>
-and future structural changes can occur<br>
-<br>
-To use this library:<br>
-download this repository and<br>
-copy the whole dir SF2 to your 'sketch folder'/'where you store your main.cpp file'<br>
-<br>
-then the usage would be:<br>
-```
 #include <Arduino.h>
 #include "SF2/reader_lazy.h"
 
@@ -72,5 +60,3 @@ void loop()
 {
   usbMIDI.read();
 }
-```
-

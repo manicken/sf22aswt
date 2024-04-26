@@ -2,7 +2,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "enums.h"
+#include "sf22asw_enums.h"
 
 
 /**

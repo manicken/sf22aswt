@@ -22,10 +22,10 @@
 // as both list_instruments and load_instrument is missing from 
 // reader.h, and is only included for future use
 // when more ram is available or for specific demands
-#include "SF2/reader.h"
+#include "SF2/sf22asw_reader.h"
 #define SF2reader SF2::reader
 #else
-#include "SF2/reader_lazy.h"
+#include "SF2/sf22asw_reader_lazy.h"
 #define SF2reader SF2::lazy_reader
 #endif
 
@@ -314,7 +314,6 @@ void processSerialCommand()
         long startTime = micros();
         
         SF2::instrument_data_temp inst_temp = {0,0,nullptr};
-        
         if (SF2reader::load_instrument_data(index, inst_temp) == false)
         {
             SF2::printSF2ErrorInfo();

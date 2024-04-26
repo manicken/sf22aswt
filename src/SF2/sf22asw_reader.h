@@ -2,11 +2,11 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include "enums.h"
-#include "structures.h"
-#include "helpers.h"
-#include "common.h"
-#include "converter.h"
+#include "sf22asw_enums.h"
+#include "sf22asw_structures.h"
+#include "sf22asw_helpers.h"
+#include "sf22asw_common.h"
+#include "sf22asw_converter.h"
 
 #ifdef DEBUG
   #define USerial SerialUSB1
