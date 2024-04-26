@@ -85,6 +85,7 @@ namespace ExtMemTest
         USerial.printf(" test ran for %.2f seconds\n", (float)msec / 1000.0f);
         USerial.print("All memory tests passed :-)\n");
         memory_ok = true;
+        return true;
     }
 
     bool fail_message(volatile uint32_t *location, uint32_t actual, uint32_t expected)

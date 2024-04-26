@@ -180,7 +180,7 @@ namespace SF2
         {
             DebugPrintln_Text_Var("reading sample: ", si);
             int length_32 = (int)std::ceil((double)inst.samples[si].LENGTH / 2.0f);
-            int length_8 = length_32*4;
+            size_t length_8 = length_32*4;
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             
