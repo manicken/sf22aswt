@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include "SF2/reader_lazy.h"
+#include <reader_lazy.h>
 
 AudioSynthWavetable wavetable;
 AudioControlSGTL5000 outputCtrl;

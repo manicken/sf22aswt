@@ -24,8 +24,8 @@
  * THE SOFTWARE.
  */
 
-#ifndef mixer80_h_
-#define mixer80_h_
+#ifndef mixer128_h_
+#define mixer128_h_
 
 #include <Arduino.h>     // github.com/PaulStoffregen/cores/blob/master/teensy4/Arduino.h
 #include <AudioStream.h> // github.com/PaulStoffregen/cores/blob/master/teensy4/AudioStream.h

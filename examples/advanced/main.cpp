@@ -22,10 +22,10 @@
 // as both list_instruments and load_instrument is missing from 
 // reader.h, and is only included for future use
 // when more ram is available or for specific demands
-#include "SF2/sf22asw_reader.h"
+#include <sf22asw_reader.h>
 #define SF2reader SF2::reader
 #else
-#include "SF2/sf22asw_reader_lazy.h"
+#include <sf22asw_reader_lazy.h>
 #define SF2reader SF2::lazy_reader
 #endif
 
