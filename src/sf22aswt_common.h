@@ -2,10 +2,10 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include "sf22asw_enums.h"
-#include "sf22asw_error_enums.h"
-#include "sf22asw_structures.h"
-#include "sf22asw_helpers.h"
+#include "sf22aswt_enums.h"
+#include "sf22aswt_error_enums.h"
+#include "sf22aswt_structures.h"
+#include "sf22aswt_helpers.h"
 
 #ifndef USerial
 #define USerial SerialUSB1
@@ -41,7 +41,7 @@
   #define DebugPrintFOURCC_size(size)
 #endif
 
-namespace SF2
+namespace SF22ASWT
 {
     uint32_t fileSize;
     String filePath;
@@ -67,16 +67,16 @@ namespace SF2
     //#define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
     #define FILE_ERROR(ERROR_TYPE) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
     #define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
-    #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (Error::Errors)((uint16_t)lastError & (uint16_t)SF2::Error::ROOT_TYPE::SUB_TYPE);
+    #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (Error::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
     
     void printSF2ErrorInfo()
     {
-        SF2::Error::printError(SF2::lastError); USerial.print("\n");
-        USerial.println(SF2::lastErrorStr);
+        SF22ASWT::Error::printError(SF22ASWT::lastError); USerial.print("\n");
+        USerial.println(SF22ASWT::lastErrorStr);
         USerial.print(" @ position: ");
-        USerial.print(SF2::lastErrorPosition);
+        USerial.print(SF22ASWT::lastErrorPosition);
         USerial.print(", lastReadCount: ");
-        USerial.print(SF2::lastReadCount); USerial.print("\n");
+        USerial.print(SF22ASWT::lastReadCount); USerial.print("\n");
     }
 
     bool ReadStringUsingLeadingSize(File &file, String& string)
@@ -159,7 +159,7 @@ namespace SF2
     {
         clearErrors();
 
-        File file = SD.open(SF2::filePath.c_str());
+        File file = SD.open(SF22ASWT::filePath.c_str());
         if (!file) {lastError = Error::Errors::FILE_NOT_OPEN; return false;}
         if (samples != nullptr) {
             FreePrevSampleData();

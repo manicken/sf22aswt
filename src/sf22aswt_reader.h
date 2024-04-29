@@ -27,7 +27,7 @@
 
 namespace SF2::reader
 {
-    sfbk_rec *sfbk;
+    sfbk_rec *sfbk;  // declare it as a pointer so that it's not allocated if not in use
 
     bool read_sdta_block(File &file);
     bool read_pdta_block(File &br);

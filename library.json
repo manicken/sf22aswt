@@ -1,0 +1,26 @@
+{
+    "name": "sf22aswt",
+    "version": "0.1",
+    "description": "Reads a Soundfont2 sf2 file that can then be converted into a object that can be used with Teensy AudioSynthWavetable object",
+    "keywords": "soundfont, sf2, teensy, audio, synth, wavetable",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/manicken/sf2Reader.git"
+    },
+    "authors":
+    [
+      {
+        "name": "Jannik Svensson",
+        "email": "",
+        "url": "https://github.com/manicken"
+      }
+    ],
+    "license": "MIT",
+    "homepage": "https://github.com/manicken",
+    "dependencies": {
+        "bblanchon/ArduinoJson":"^7.0.4"
+    },
+    "frameworks": "arduino",
+    "platforms": "teensy"
+  }

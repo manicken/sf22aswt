@@ -8,29 +8,14 @@
 #include <ArduinoJson.h>
 #include "ledblinker.h"
 #include "Mixer128.h"
-
 #include "ExtMemTest.h"
+#include <sf22aswt.h>
 
 #ifndef USerial
 #define USerial SerialUSB
 #endif
 
-#define USE_LAZY_READER
-
-#ifndef USE_LAZY_READER
-// this is currently not fully implemented
-// as both list_instruments and load_instrument is missing from 
-// reader.h, and is only included for future use
-// when more ram is available or for specific demands
-#include <sf22asw_reader.h>
-#define SF2reader SF2::reader
-#else
-#include <sf22asw_reader_lazy.h>
-#define SF2reader SF2::lazy_reader
-#endif
-
 #define VOICE_COUNT 128
-
 AudioSynthWavetable wavetable[VOICE_COUNT];
 AudioSynthWavetable::instrument_data *wt_inst = nullptr;
 int notes[VOICE_COUNT];
@@ -174,6 +159,7 @@ void processSerialCommand();
 
 void setup()
 {
+    
     AudioMemory(1024);
     InitVoices();
 	//Serial.begin(115200);
@@ -237,9 +223,9 @@ void processSerialCommand()
         if (bytesRead <= 11) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
         
         long startTime = micros();
-        if (SF2reader::ReadFile(&serialRxBuffer[10]) == false)
+        if (SF22ASWTreader::ReadFile(&serialRxBuffer[10]) == false)
         {
-            SF2::printSF2ErrorInfo();
+            SF22ASWT::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
             // TODO. open and print a part of file contents if possible
@@ -253,21 +239,25 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_info", 10) == 0)
     {
-        USerial.print("\n*** info ***\nfile size: "); USerial.print(SF2::fileSize);
-        USerial.print(", sfbk size: "); USerial.print(SF2reader::sfbk->size);
-        USerial.print(", info size: "); USerial.print(SF2reader::sfbk->info_size);
-        USerial.print(", sdta size:"); USerial.print(SF2reader::sfbk->sdta.size);
-        USerial.print(", pdta size: "); USerial.print(SF2reader::sfbk->pdta.size);
+        USerial.print("\n*** info ***\nfile size: "); USerial.print(SF22ASWT::fileSize);
+        USerial.print(", sfbk size: "); USerial.print(SF22ASWTreader::sfbk->size);
+        USerial.print(", info size: "); USerial.print(SF22ASWTreader::sfbk->info_size);
+        USerial.print(", sdta size:"); USerial.print(SF22ASWTreader::sfbk->sdta.size);
+        USerial.print(", pdta size: "); USerial.print(SF22ASWTreader::sfbk->pdta.size);
         USerial.print("\n");
-        USerial.print("inst pos: "); USerial.print(SF2reader::sfbk->pdta.inst_position); USerial.print(", inst count: "); USerial.println(SF2reader::sfbk->pdta.inst_count);
-        USerial.print("ibag pos: "); USerial.print(SF2reader::sfbk->pdta.ibag_position); USerial.print(", ibag count: "); USerial.println(SF2reader::sfbk->pdta.ibag_count);
-        USerial.print("igen pos: "); USerial.print(SF2reader::sfbk->pdta.igen_position); USerial.print(", igen count: "); USerial.println(SF2reader::sfbk->pdta.igen_count);
-        USerial.print("shdr pos: "); USerial.print(SF2reader::sfbk->pdta.shdr_position); USerial.print(", shdr count: "); USerial.println(SF2reader::sfbk->pdta.shdr_count);
+        USerial.print("inst pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.inst_position); 
+        USerial.print(", inst count: "); USerial.println(SF22ASWTreader::sfbk->pdta.inst_count);
+        USerial.print("ibag pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.ibag_position); 
+        USerial.print(", ibag count: "); USerial.println(SF22ASWTreader::sfbk->pdta.ibag_count);
+        USerial.print("igen pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.igen_position); 
+        USerial.print(", igen count: "); USerial.println(SF22ASWTreader::sfbk->pdta.igen_count);
+        USerial.print("shdr pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.shdr_position); 
+        USerial.print(", shdr count: "); USerial.println(SF22ASWTreader::sfbk->pdta.shdr_count);
 
-        SF2::INFO info;
-        File file = SD.open(SF2::filePath.c_str());
-        file.seek(SF2reader::sfbk->info_position);
-        SF2::readInfoBlock(file, info);
+        SF22ASWT::INFO info;
+        File file = SD.open(SF22ASWT::filePath.c_str());
+        file.seek(SF22ASWTreader::sfbk->info_position);
+        SF22ASWT::readInfoBlock(file, info);
         file.close();
         USerial.println(info.ToString());
         USerialSendAck_OK();
@@ -275,18 +265,18 @@ void processSerialCommand()
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
         long startTime = micros();
-        if (SF2reader::lastReadWasOK == false) {
+        if (SF22ASWTreader::lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
         }
 
         USerial.print("json:{\"instruments\":[");
-        File file = SD.open(SF2::filePath.c_str());
-        file.seek(SF2reader::sfbk->pdta.inst_position);
-        SF2::inst_rec inst;
+        File file = SD.open(SF22ASWT::filePath.c_str());
+        file.seek(SF22ASWTreader::sfbk->pdta.inst_position);
+        SF22ASWT::inst_rec inst;
         
-        for (uint32_t i = 0; i < SF2reader::sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
+        for (uint32_t i = 0; i < SF22ASWTreader::sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
         {
             file.read(&inst, 22);
             USerial.print("{\"name\":\"");
@@ -313,10 +303,10 @@ void processSerialCommand()
 
         long startTime = micros();
         
-        SF2::instrument_data_temp inst_temp = {0,0,nullptr};
-        if (SF2reader::load_instrument_data(index, inst_temp) == false)
+        SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
+        if (SF22ASWTreader::load_instrument_data(index, inst_temp) == false)
         {
-            SF2::printSF2ErrorInfo();
+            SF22ASWT::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
@@ -333,14 +323,14 @@ void processSerialCommand()
         //USerial.print("Start to load sample data from file\n");
         startTime = micros();
         
-        if (SF2::ReadSampleDataFromFile(inst_temp) == false)
+        if (SF22ASWT::ReadSampleDataFromFile(inst_temp) == false)
         {
-            SF2::printSF2ErrorInfo();
+            SF22ASWT::printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
         USerial.print("current instrument sample data size inclusive padding: ");
-        USerial.print(SF2::totalSampleDataSizeBytes);
+        USerial.print(SF22ASWT::totalSampleDataSizeBytes);
         USerial.println(" bytes");
         
         endTime = micros();
@@ -350,7 +340,7 @@ void processSerialCommand()
         // copy the old instrument_data pointer so we can delete the used data later
         AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
 
-        wt_inst = new AudioSynthWavetable::instrument_data(SF2::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
+        wt_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
         SetInstrument(*wt_inst);
         // delete prev inst data if exists
         // Check if wt_inst_old is not nullptr and delete the memory it's pointing to
@@ -384,7 +374,7 @@ void processSerialCommand()
         // copy the old instrument_data pointer so we can delete the used data later
         AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
         
-        if (SF2::lazy_reader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &wt_inst) == false)
+        if (SF22ASWTreader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &wt_inst) == false)
         {
             USerial.println("load_first_instrument_from_file error!");
             USerialSendAck_KO();
@@ -418,7 +408,7 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_all_errors", 16) == 0)
     {
-        SF2::Error::Test::ExecTest();
+        SF22ASWT::Error::Test::ExecTest();
         USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "ping", 4) == 0) // used to auto detect comport

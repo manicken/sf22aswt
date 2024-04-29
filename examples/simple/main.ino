@@ -1,5 +1,5 @@
 #include <Arduino.h>
-#include <reader_lazy.h>
+#include <sf22aswt.h>
 
 AudioSynthWavetable wavetable;
 AudioControlSGTL5000 outputCtrl;
@@ -36,7 +36,7 @@ Serial.println("USB serial port initialized!"); // try to see if i can receive t
     AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
 
     int instrumentIndex = 0;
-    if (SF2::lazy_reader::load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
+    if (SF22ASWTreader::load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
     {
         Serial.println("load_instrument_from_file error!");
     }

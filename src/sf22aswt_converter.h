@@ -3,20 +3,20 @@
 
 #include <Arduino.h>
 #include <Audio.h>
-#include "sf22asw_enums.h"
-#include "sf22asw_structures.h"
-#include "sf22asw_helpers.h"
-#include "sf22asw_common.h"
+#include "sf22aswt_enums.h"
+#include "sf22aswt_structures.h"
+#include "sf22aswt_helpers.h"
+#include "sf22aswt_common.h"
 
-namespace SF2::converter
+namespace SF22ASWT::converter
 {
-    SF2::sample_header toFinal(SF2::sample_header_temp &sd);
+    SF22ASWT::sample_header toFinal(SF22ASWT::sample_header_temp &sd);
 
-    AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF2::instrument_data_temp &data)
+    AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF22ASWT::instrument_data_temp &data)
     {
         // must use a second struct to contain the data
         // as AudioSynthWavetable::sample_data members are const
-        SF2::sample_header *samples = new SF2::sample_header[data.sample_count+1];
+        SF22ASWT::sample_header *samples = new SF22ASWT::sample_header[data.sample_count+1];
         uint8_t *note_ranges = new uint8_t[data.sample_count+1];
         for (int i=0;i<data.sample_count;i++)
         {
@@ -36,7 +36,7 @@ namespace SF2::converter
         };
     }
 
-    SF2::sample_header toFinal(SF2::sample_header_temp &sd)
+    SF22ASWT::sample_header toFinal(SF22ASWT::sample_header_temp &sd)
     {
         return 
         {

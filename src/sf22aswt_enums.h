@@ -7,7 +7,7 @@
 
 #include <Arduino.h>
 
-namespace SF2
+namespace SF22ASWT
 {
     /**
      *  Values that represents the type of generator.

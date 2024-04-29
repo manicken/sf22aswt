@@ -2,7 +2,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include "sf22asw_enums.h"
+#include "sf22aswt_enums.h"
 
 
 /**
@@ -11,7 +11,7 @@
  * size is the block size
  * */
 
-namespace SF2
+namespace SF22ASWT
 {
     /** make it easier to manage sample datas*/
     class sample_data {

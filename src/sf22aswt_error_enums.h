@@ -4,7 +4,7 @@
 
 #define USerial SerialUSB
 
-namespace SF2::Error
+namespace SF22ASWT::Error
 {
     #define ERROR_ROOT_LOCATION_NIBBLE 3
     #define ERROR_SUB_LOCATION_NIBBLE  2
@@ -103,15 +103,15 @@ namespace SF2::Error
     
     /** * Used for root errors * */
     #define ERROR(ROOT_LOCATION, TYPE, OPERATION) (\
-                                    (uint16_t)SF2::Error::Operation::OPERATION + \
-                                    (uint16_t)SF2::Error::Type::TYPE + \
-                                    (uint16_t)SF2::Error::RootLocation::ROOT_LOCATION)
+                                    (uint16_t)SF22ASWT::Error::Operation::OPERATION + \
+                                    (uint16_t)SF22ASWT::Error::Type::TYPE + \
+                                    (uint16_t)SF22ASWT::Error::RootLocation::ROOT_LOCATION)
     /** * Used for sub location errors * */
     #define ERROR_SUB(ROOT_LOCATION, SUB_LOCATION, TYPE, OPERATION) (\
-                                    (uint16_t)SF2::Error::Operation::OPERATION + \
-                                    (uint16_t)SF2::Error::Type::TYPE + \
-                                    (uint16_t)SF2::Error::ROOT_LOCATION::SUB_LOCATION + \
-                                    (uint16_t)SF2::Error::RootLocation::ROOT_LOCATION)
+                                    (uint16_t)SF22ASWT::Error::Operation::OPERATION + \
+                                    (uint16_t)SF22ASWT::Error::Type::TYPE + \
+                                    (uint16_t)SF22ASWT::Error::ROOT_LOCATION::SUB_LOCATION + \
+                                    (uint16_t)SF22ASWT::Error::RootLocation::ROOT_LOCATION)
     
     enum class Errors : uint16_t
     {
@@ -443,7 +443,7 @@ namespace SF2::Error
     }
 }
 
-namespace SF2::Error::Test
+namespace SF22ASWT::Error::Test
 {
     const Errors ErrorList[] PROGMEM = {
         Errors::NONE,
@@ -594,4 +594,4 @@ namespace SF2::Error::Test
         //Errors pe = Errors::LISTTYPE_FOURCC_INVALID;
     }
     
-} // namespace SF2::Error::Test
+} // namespace SF22ASWT::Error::Test
