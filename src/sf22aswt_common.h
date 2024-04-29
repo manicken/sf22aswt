@@ -153,6 +153,7 @@ namespace SF22ASWT
         }
         DebugPrintln("[OK]");
         delete[] samples;
+        samples = nullptr;
     }
 
     bool ReadSampleDataFromFile(instrument_data_temp &inst)

@@ -19,7 +19,7 @@
     "license": "MIT",
     "homepage": "https://github.com/manicken",
     "dependencies": {
-        "bblanchon/ArduinoJson":"^7.0.4"
+    
     },
     "frameworks": "arduino",
     "platforms": "teensy"

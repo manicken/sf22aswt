@@ -1,153 +1,15 @@
 #include <Arduino.h>
-#include <Audio.h>
-#include <Wire.h>
-#include <SPI.h>
-#include <SD.h>
-#include <SerialFlash.h>
 #include <MIDI.h>
-#include <ArduinoJson.h>
 #include "ledblinker.h"
 #include "Mixer128.h"
 #include "ExtMemTest.h"
+#include "WaveTableSynth.h"
+#include "SerialFileRx.h"
 #include <sf22aswt.h>
 
 #ifndef USerial
 #define USerial SerialUSB
 #endif
-
-#define VOICE_COUNT 128
-AudioSynthWavetable wavetable[VOICE_COUNT];
-AudioSynthWavetable::instrument_data *wt_inst = nullptr;
-int notes[VOICE_COUNT];
-bool sustain[VOICE_COUNT];
-
-AudioMixer128 mixer;
-
-AudioControlSGTL5000 outputCtrl;
-
-AudioOutputI2S i2sOut;
-
-AudioConnection voiceConnections[VOICE_COUNT];
-
-AudioConnection toI2s_1(mixer, 0, i2sOut, 0);
-AudioConnection toI2s_2(mixer, 0, i2sOut, 1);
-
-void USerialSendAck_OK()
-{
-    USerial.println("ACK_OK");
-}
-void USerialSendAck_KO()
-{
-    USerial.println("ACK_KO");
-}
-void InitVoices()
-{
-    // TODO.better mixer for mixin all wavetable outputs
-    float mixerGlobalGain = 1.0f/8.0f;//(float)(VOICE_COUNT/4);
-    for (int i=0;i<VOICE_COUNT;i++)
-    {
-        voiceConnections[i].connect(wavetable[i], 0, mixer, i);
-        notes[i] = -1; // set to free
-        sustain[i] = false;
-        mixer.gain(i, mixerGlobalGain);
-    }
-}
-void autoGain()
-{
-    int numPlaying = 0;
-    for (int i=0;i<128;i++)
-    {
-        if (wavetable[i].isPlaying())
-            numPlaying++;
-    }
-    if (numPlaying == 0) numPlaying = 1;
-    float newGain = 1.0f/(float)numPlaying;
-    //USerial.println(newGain);
-    for (int i=0;i<128;i++)
-    {
-        mixer.gain(i, newGain);
-    }
-}
-void SetInstrument(const AudioSynthWavetable::instrument_data &inst)
-{
-    for (int i=0;i<VOICE_COUNT;i++) {
-        
-        wavetable[i].setInstrument(inst);
-    }
-}
-void activateSustain()
-{
-    //sustainActive = true;
-    for (int i=0;i<VOICE_COUNT;i++) {
-        if (notes[i] != -1)
-            sustain[i] = true;
-    }
-}
-
-void deactivateSustain()
-{
-    for (int i=0;i<VOICE_COUNT;i++) {
-        if (notes[i] != -1 && sustain[i] == true) {
-            wavetable[i].stop();
-            notes[i] = -1;
-            sustain[i] = false;
-        }
-        
-    }
-    //autoGain();
-}
-
-
-void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
-    /*USerial.print("note on: ");
-    USerial.print(note);
-    USerial.print(", velocity: ");
-    USerial.print(velocity); USerial.print("\n");*/
-    //waveform.frequency(noteFreqs[note]);
-    //for (int i=0;i<VOICE_COUNT;i++){
-    //    if (notes[i]==-1) {
-            notes[note] = 1;
-            wavetable[note].playNote(note, velocity);
-            //return;
-        //}
-    //}
-    //autoGain();
-    //waveform.amplitude(1.0);
-}
-
-void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
-    /*USerial.print("note off: ");
-    USerial.print(note);
-    USerial.print(", velocity: ");
-    USerial.print(velocity); USerial.print("\n");*/
-    //waveform.amplitude(0);
-    //if (sustainActive) return;
-
-    //for (int i=0;i<VOICE_COUNT;i++){
-        if (notes[note]==1 && sustain[note] == false) {
-            notes[note] = -1;
-            wavetable[note].stop();
-            //autoGain();
-            return;
-        }
-    //}
-
-}
-
-void usbMidi_ControlChange(byte channel, byte control, byte value) {
-    switch (control) { // cases 20-31,102-119 is undefined in midi spec
-        case 64:
-          if (value == 0)
-            deactivateSustain();
-          else if (value == 127)
-            activateSustain();
-          break;
-    }
-}
-void usbMidi_SysEx(const uint8_t *data, uint16_t length, bool complete)
-{
-
-}
 
 
 
@@ -156,12 +18,16 @@ bool cardInitialized = false;
 
 void listFiles(const char *dirname);
 void processSerialCommand();
+void processSerialRx_FileData();
+
+void USerialSendAck_OK(){USerial.println("ACK_OK");}
+void USerialSendAck_KO(){USerial.println("ACK_KO");}
 
 void setup()
 {
     
     AudioMemory(1024);
-    InitVoices();
+    WaveTableSynth::Init();
 	//Serial.begin(115200);
     USerial.begin(115200);
     delay(500); // give host a little extra time to auto reconnect
@@ -177,14 +43,6 @@ void setup()
         cardInitialized = true;
     }
 
-    usbMIDI.setHandleNoteOn(usbMidi_NoteOn);
-    usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
-    usbMIDI.setHandleControlChange(usbMidi_ControlChange);
-    usbMIDI.setHandleSysEx(usbMidi_SysEx);
-
-    outputCtrl.enable();
-    outputCtrl.volume(1.0f);
-
     USerial.println("setup end"); // try to see if i can receive this
     USerialSendAck_OK();
 }
@@ -192,9 +50,27 @@ void setup()
 void loop()
 {
     ledBlinkTask();
-    processSerialCommand();
+    if (USerial.available() > 0)
+    { 
+        if (SerialFileRx::inProgress == false) {
+
+            processSerialCommand();
+        }
+        else
+            SerialFileRx::process_FileData();
+    }
+    else if(SerialFileRx::inProgress) {
+        long curr = millis();
+        if ((curr - SerialFileRx::lastTimeRxData) > 4000) // rx timeout failsafe
+        {
+            SerialFileRx::EndRxFile();
+            USerial.println("receive file timeout error!");
+            USerialSendAck_KO();
+        }
+    }
     usbMIDI.read();
 }
+
 
 void processSerialCommand()
 {
@@ -338,10 +214,10 @@ void processSerialCommand()
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
         // copy the old instrument_data pointer so we can delete the used data later
-        AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
+        AudioSynthWavetable::instrument_data *wt_inst_old = WaveTableSynth::wt_inst;
 
-        wt_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
-        SetInstrument(*wt_inst);
+        WaveTableSynth::wt_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
+        WaveTableSynth::SetInstrument(*WaveTableSynth::wt_inst);
         // delete prev inst data if exists
         // Check if wt_inst_old is not nullptr and delete the memory it's pointing to
         if(wt_inst_old != nullptr)
@@ -364,7 +240,7 @@ void processSerialCommand()
 
 
         if (bytesRead <= (26+6)) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
-        //int instrumentIndex = 0; // TODO make this a parameter
+
         long startTime = micros();
 
         // print some debug info:
@@ -372,21 +248,22 @@ void processSerialCommand()
         USerial.print("instrument index:"); USerial.println(instrumentIndex);
 
         // copy the old instrument_data pointer so we can delete the used data later
-        AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
+        AudioSynthWavetable::instrument_data *wt_inst_old = WaveTableSynth::wt_inst;
         
-        if (SF22ASWTreader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &wt_inst) == false)
+        if (SF22ASWTreader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &WaveTableSynth::wt_inst) == false)
         {
             USerial.println("load_first_instrument_from_file error!");
             USerialSendAck_KO();
             return;
         }
         
-        SetInstrument(*wt_inst);
+        WaveTableSynth::SetInstrument(*WaveTableSynth::wt_inst);
         // delete prev inst data if exists
         // Check if wt_inst_old is not nullptr and delete the memory it's pointing to
         if(wt_inst_old != nullptr)
         {
-            USerial.println("deleting prev inst.");
+            USerial.println("deleting prev instrument data");
+            delete[] wt_inst_old->samples;
             delete wt_inst_old;
             wt_inst_old = nullptr; // It's a good practice to set deleted pointers to nullptr
         }
@@ -396,6 +273,36 @@ void processSerialCommand()
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
         USerial.println("json:{'cmd':'instrument_loaded'}");
+    }
+    else if (strncmp(serialRxBuffer, "transfer_file:", 14) == 0)
+    {
+        
+        // the file size is a zeropadded 8 digit hex number followed by a :(for clarification)
+        if (bytesRead <= (14+9)) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
+
+        char* endptr;
+        uint fileSize = std::strtoul(&serialRxBuffer[14], &endptr, 16);
+        if (&serialRxBuffer[14] == endptr) { USerial.println("transfer_file file size parameter don't start with valid hex digit"); USerialSendAck_KO(); return; }
+        if (*endptr != ':') { USerial.println("transfer_file : missing after file size parameter"); USerialSendAck_KO(); return; }
+
+
+        SerialFileRx::StartRxFile(&serialRxBuffer[14+9], fileSize);
+        
+        
+        // debug just send back
+        USerial.print("file size:"); USerial.println(fileSize);
+        USerial.print("file name:"); USerial.println(&serialRxBuffer[14+9]);
+
+        USerial.println("json:{'cmd':'start_send_file_ack'}");
+    }
+    else if (strncmp(serialRxBuffer, "delete_file:", 12) == 0)
+    {
+        if (bytesRead <= 13) { USerial.print("delete_file path parameter missing\n"); USerialSendAck_KO(); return; }
+
+        if (SD.remove(&serialRxBuffer[12]) == false) { USerial.print("could not delete file: "); USerial.println(&serialRxBuffer[12]); USerialSendAck_KO(); return; }
+        
+        USerial.print("deleted file: "); USerial.print(&serialRxBuffer[12]);
+        USerial.println("json:{'cmd':'deleted_file'}");
     }
     else if (strncmp(serialRxBuffer, "exec_ext_mem_test", 17) == 0)
     {

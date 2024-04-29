@@ -191,6 +191,13 @@ namespace SF22ASWT
           }
           return str;
         }
+
+        ~instrument_data_temp() {
+          delete[] samples;
+          samples = nullptr; // avoid dangling pointer
+          delete[] sample_note_ranges;
+          sample_note_ranges = nullptr; // avoid dangling pointer
+        }
     };
 
   
