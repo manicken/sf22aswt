@@ -26,7 +26,7 @@ void USerialSendAck_KO(){USerial.println("ACK_KO");}
 void setup()
 {
     
-    AudioMemory(1024);
+    AudioMemory(128);
     WaveTableSynth::Init();
 	//Serial.begin(115200);
     USerial.begin(115200);
@@ -146,28 +146,25 @@ void processSerialCommand()
             USerialSendAck_KO();
             return;
         }
-
-        USerial.print("json:{\"instruments\":[");
-        File file = SD.open(SF22ASWT::filePath.c_str());
-        file.seek(SF22ASWTreader::sfbk->pdta.inst_position);
-        SF22ASWT::inst_rec inst;
-        
-        for (uint32_t i = 0; i < SF22ASWTreader::sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
-        {
-            file.read(&inst, 22);
-            USerial.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(inst.achInstName, 20, '\0');
-            USerial.print("\",\"ndx\":");
-            USerial.print(inst.wInstBagNdx);
-            USerial.print("},");
-        }
-        file.close();
-        USerial.println("]}");
+        SF22ASWTreader::printInstrumentListAsJson();
         long endTime = micros();
         USerial.print("list instruments took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
         USerial.println(" ms");
-
+    }
+    else if (strncmp(serialRxBuffer, "list_presets", 12) == 0)
+    {
+        long startTime = micros();
+        if (SF22ASWTreader::lastReadWasOK == false) {
+            USerial.println("file not open or last read was not ok");
+            USerialSendAck_KO();
+            return;
+        }
+        SF22ASWTreader::printPresetListAsJson();
+        long endTime = micros();
+        USerial.print("list presets took: ");
+        USerial.print((float)(endTime-startTime)/1000.0f);
+        USerial.println(" ms");
     }
     else if (strncmp(serialRxBuffer, "load_instrument:", 16) == 0)
     {
@@ -186,7 +183,7 @@ void processSerialCommand()
             USerialSendAck_KO();
             return;
         }
-        //USerial.print("instrument load presets complete\n");
+        //USerial.print("instrument load generator data complete\n");
 
         //USerial.print(inst_temp.ToString());  USerial.print("\n");
 

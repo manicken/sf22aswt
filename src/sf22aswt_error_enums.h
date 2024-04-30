@@ -1,8 +1,13 @@
 #pragma once
 
 #include <Arduino.h>
-
+#ifndef USerial
 #define USerial SerialUSB
+#endif
+
+// this mode takes 2192 bytes of flash
+//#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
+
 
 namespace SF22ASWT::Error
 {
@@ -248,9 +253,7 @@ namespace SF22ASWT::Error
         PDTA_SHDR_DATA_SKIP     = ERROR_SUB(PDTA, SHDR, DATA, SEEKSKIP),
     };
 
-    // currently only a demo how error code can be translated into strings
-    // should have a define so that it can be enabled/disabled by the user requirements
-
+#ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
     const uint16_t Operation_LockupTable[] PROGMEM = {
         // do the shifts here to optimize the lockup function code
         (uint16_t)Operation::OPEN,
@@ -402,17 +405,23 @@ namespace SF22ASWT::Error
         }
         return false;
     }
+#endif
 
     void printError(Errors pe)
     {
         uint16_t code = (uint16_t)pe;
+#ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
         if (code == 0) {
             USerial.print("NONE");
             return;
         }
+#endif
         USerial.print(code, 16);
+#ifndef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
+        USerial.println();
+#endif
+#ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
         USerial.print(" ");
-        
         uint32_t root = code & ERROR_ROOT_LOCATION_NIBBLE_MASK;
         uint32_t sub = code & ERROR_SUB_LOCATION_NIBBLE_MASK;
         uint32_t type = code & ERROR_TYPE_LOCATION_NIBBLE_MASK;
@@ -439,7 +448,7 @@ namespace SF22ASWT::Error
             USerial.print("_");
         
         printError(Operation_LockupTable, Operation_Strings, Operation_LockupTable_Size, operation);
-        
+#endif
     }
 }
 

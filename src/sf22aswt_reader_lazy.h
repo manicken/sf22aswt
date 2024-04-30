@@ -96,6 +96,50 @@ namespace SF22ASWT::reader_lazy
         return true;
     }
 
+    void printInstrumentListAsJson()
+    {
+        USerial.print("json:{\"instruments\":[");
+        File file = SD.open(SF22ASWT::filePath.c_str());
+        file.seek(sfbk->pdta.inst_position);
+        SF22ASWT::inst_rec inst;
+        
+        for (uint32_t i = 0; i < sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
+        {
+            file.read(&inst, SF22ASWT::inst_rec::Size);
+            USerial.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(inst.achInstName, 20, '\0');
+            USerial.print("\",\"ndx\":");
+            USerial.print(inst.wInstBagNdx);
+            USerial.print("},");
+        }
+        file.close();
+        USerial.println("]}");
+    }
+
+    void printPresetListAsJson()
+    {
+        USerial.print("json:{\"presets\":[");
+        File file = SD.open(SF22ASWT::filePath.c_str());
+        file.seek(sfbk->pdta.phdr_position);
+        SF22ASWT::phdr_rec phdr;
+        
+        for (uint32_t i = 0; i < sfbk->pdta.phdr_count - 1; i++) // -1 the last is allways a EOP
+        {
+            file.read(&phdr, SF22ASWT::phdr_rec::Size);
+            USerial.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(phdr.achPresetName, 20, '\0');
+            USerial.print("\",\"bank\":");
+            USerial.print(phdr.wBank);
+            USerial.print(",\"preset\":");
+            USerial.print(phdr.wPreset);
+            USerial.print(",\"bagNdx\":");
+            USerial.print(phdr.wPresetBagNdx);
+            USerial.print("},");
+        }
+        file.close();
+        USerial.println("]}");
+    }
+
     /**
      * this function do only load the sample preset headers for the instrument
      * to load the actual sample data the function SF22ASWT::ReadSampleDataFromFile
