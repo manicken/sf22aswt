@@ -30,7 +30,7 @@
   #define DebugPrintln(args) USerial.println(args);
   #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
   #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
-  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
+  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(USerial, fourCC, 4); USerial.println("<<<");
   #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
 #else
   #define DebugPrint(args)
@@ -222,4 +222,5 @@ namespace SF22ASWT
         file.close();
         return true;
     }
+
 };

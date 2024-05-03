@@ -2,11 +2,11 @@
 
 #include <Arduino.h>
 #include <SD.h>
-#include "sf22asw_enums.h"
-#include "sf22asw_structures.h"
-#include "sf22asw_helpers.h"
-#include "sf22asw_common.h"
-#include "sf22asw_converter.h"
+#include "sf22aswt_enums.h"
+#include "sf22aswt_structures.h"
+#include "sf22aswt_helpers.h"
+#include "sf22aswt_common.h"
+#include "sf22aswt_converter.h"
 
 #ifdef DEBUG
   #define USerial SerialUSB1
@@ -14,7 +14,7 @@
   #define DebugPrintln(args) USerial.println(args);
   #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
   #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
-  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(fourCC, 4); USerial.println("<<<");
+  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(USerial, fourCC, 4); USerial.println("<<<");
   #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
 #else
   #define DebugPrint(args)

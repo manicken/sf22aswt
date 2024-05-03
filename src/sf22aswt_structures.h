@@ -251,7 +251,7 @@ namespace SF22ASWT
         /** The tool used to create or edit the SoundFont */
         String ISFT;
 
-        String ToString()
+        /*String ToString()
         {
             String ret = "\n";
             ret += "*** Info *** ( size: ";
@@ -269,6 +269,24 @@ namespace SF22ASWT
             ret += "Comment: " + ICMT + "\n";
             ret += "Tools: " + ISFT + "\n";
             return ret;
+        }*/
+        void Print(Print &stream)
+        {
+            stream.println();
+            stream.print("*** Info *** ( size: ");
+            stream.print(size);
+            stream.println(" )\n");
+            stream.print("Soundfont version: "); stream.println(ifil.ToString());
+            stream.print("Name: "); stream.println(INAM);
+            stream.print("SoundEngine: "); stream.println(isng);
+            stream.print("ROM: "); stream.println(irom);
+            stream.print("ROM ver: "); stream.println(iver.ToString());
+            stream.print("Date: "); stream.println(ICRD);
+            stream.print("Credits: "); stream.println(IENG);
+            stream.print("Product: "); stream.println(IPRD);
+            stream.print("Copyright: "); stream.println(ICOP);
+            stream.print("Comment: "); stream.println(ICMT);
+            stream.print("Tools: "); stream.println(ISFT);
         }
     };
 

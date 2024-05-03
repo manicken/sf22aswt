@@ -2,60 +2,56 @@
 
 #include <Arduino.h>
 
-#ifndef USerial
-#define USerial SerialUSB
-#endif
-
 namespace Helpers
 {
-    void printRawBytes(const char* bytes, size_t length)
+    void printRawBytes(Stream &str, const char* bytes, size_t length)
     {
         for (size_t i=0;i<length;i++)
         {
             if (bytes[i] < 32 || bytes[i] > 126)
             {
-                USerial.print("[");
-                USerial.print(bytes[i],HEX);
-                USerial.print("]");
+                str.print("[");
+                str.print(bytes[i],HEX);
+                str.print("]");
             }
             else
-                USerial.write(bytes[i]);
+                str.write(bytes[i]);
         }
     }
-    void printRawBytesSanitized(const char* bytes, size_t length)
+    void printRawBytesSanitized(Stream &str, const char* bytes, size_t length)
     {
         for (size_t i=0;i<length;i++)
         {
             if (bytes[i] < 32 || bytes[i] > 126)
-                USerial.write(' ');
+                str.write(' ');
             else
-                USerial.write(bytes[i]);
+                str.write(bytes[i]);
         }
     }
-    void printRawBytesSanitizedUntil(const char* bytes, size_t length, char untilchar)
+    void printRawBytesSanitizedUntil(Stream &str, const char* bytes, size_t length, char untilchar)
     {
         for (size_t i=0;i<length;i++)
         {
             if (bytes[i] == untilchar) return;
             if (bytes[i] < 32 || bytes[i] > 126)
-                USerial.write(' ');
+                str.write(' ');
             else
-                USerial.write(bytes[i]);
+                str.write(bytes[i]);
         }
     }
-    void printRawBytesUntil(const char* bytes, size_t length, char untilchar)
+    void printRawBytesUntil(Stream &str, const char* bytes, size_t length, char untilchar)
     {
         for (size_t i=0;i<length;i++)
         {
             if (bytes[i] == untilchar) return;
             if (bytes[i] < 32 || bytes[i] > 126)
             {
-                USerial.print("[");
-                USerial.print(bytes[i],HEX);
-                USerial.print("]");
+                str.print("[");
+                str.print(bytes[i],HEX);
+                str.print("]");
             }
             else
-                USerial.write(bytes[i]);
+                str.write(bytes[i]);
         }
     }
 }

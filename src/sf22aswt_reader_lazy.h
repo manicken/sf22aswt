@@ -96,9 +96,9 @@ namespace SF22ASWT::reader_lazy
         return true;
     }
 
-    void printInstrumentListAsJson()
+    void printInstrumentListAsJson(Stream &stream)
     {
-        USerial.print("json:{\"instruments\":[");
+        stream.print("json:{\"instruments\":[");
         File file = SD.open(SF22ASWT::filePath.c_str());
         file.seek(sfbk->pdta.inst_position);
         SF22ASWT::inst_rec inst;
@@ -106,19 +106,19 @@ namespace SF22ASWT::reader_lazy
         for (uint32_t i = 0; i < sfbk->pdta.inst_count - 1; i++) // -1 the last is allways a EOI
         {
             file.read(&inst, SF22ASWT::inst_rec::Size);
-            USerial.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(inst.achInstName, 20, '\0');
-            USerial.print("\",\"ndx\":");
-            USerial.print(inst.wInstBagNdx);
-            USerial.print("},");
+            stream.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(stream, inst.achInstName, 20, '\0');
+            stream.print("\",\"ndx\":");
+            stream.print(inst.wInstBagNdx);
+            stream.print("},");
         }
         file.close();
-        USerial.println("]}");
+        stream.println("]}");
     }
 
-    void printPresetListAsJson()
+    void printPresetListAsJson(Stream &stream)
     {
-        USerial.print("json:{\"presets\":[");
+        stream.print("json:{\"presets\":[");
         File file = SD.open(SF22ASWT::filePath.c_str());
         file.seek(sfbk->pdta.phdr_position);
         SF22ASWT::phdr_rec phdr;
@@ -126,18 +126,18 @@ namespace SF22ASWT::reader_lazy
         for (uint32_t i = 0; i < sfbk->pdta.phdr_count - 1; i++) // -1 the last is allways a EOP
         {
             file.read(&phdr, SF22ASWT::phdr_rec::Size);
-            USerial.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(phdr.achPresetName, 20, '\0');
-            USerial.print("\",\"bank\":");
-            USerial.print(phdr.wBank);
-            USerial.print(",\"preset\":");
-            USerial.print(phdr.wPreset);
-            USerial.print(",\"bagNdx\":");
-            USerial.print(phdr.wPresetBagNdx);
-            USerial.print("},");
+            stream.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(stream, phdr.achPresetName, 20, '\0');
+            stream.print("\",\"bank\":");
+            stream.print(phdr.wBank);
+            stream.print(",\"preset\":");
+            stream.print(phdr.wPreset);
+            stream.print(",\"bagNdx\":");
+            stream.print(phdr.wPresetBagNdx);
+            stream.print("},");
         }
         file.close();
-        USerial.println("]}");
+        stream.println("]}");
     }
 
     /**
@@ -231,7 +231,7 @@ namespace SF22ASWT::reader_lazy
             }
             DebugPrint("sample name: ");
 #ifdef DEBUG
-            Helpers::printRawBytesSanitizedUntil(shdr.achSampleName, 20, '\0');
+            Helpers::printRawBytesSanitizedUntil(USerial, shdr.achSampleName, 20, '\0');
 #endif
             DebugPrintln();
             DebugPrintln("getting data:");
@@ -315,4 +315,71 @@ namespace SF22ASWT::reader_lazy
         *aswt_id = new_inst;
         return true;
     }
+
+    
+    void PrintInfoBlock(Print &stream)
+    {
+        SF22ASWT::INFO info;
+        File file = SD.open(SF22ASWT::filePath.c_str());
+        file.seek(sfbk->info_position);
+        SF22ASWT::readInfoBlock(file, info);
+        
+        file.close();
+        info.size = sfbk->info_size;
+        info.Print(stream);
+    }
 }
+
+// this is just a test
+class MemoryStream : public Print {
+  private:
+    char *buffer;
+    size_t bufferSize;
+    size_t bufferIndex;
+
+  public:
+    MemoryStream(size_t size) {
+      buffer = new char[size];
+      bufferSize = size;
+      bufferIndex = 0;
+    }
+
+    ~MemoryStream() {
+      delete[] buffer;
+    }
+
+    virtual size_t write(uint8_t c) {
+      if (bufferIndex < bufferSize - 1) {
+        buffer[bufferIndex++] = c;
+        buffer[bufferIndex] = '\0'; // Null-terminate the string
+        return 1; // Successful write
+      } else {
+        return 0; // Buffer overflow
+      }
+    }
+
+    virtual size_t write(const uint8_t *buffer, size_t size) {
+      size_t bytesWritten = 0;
+      for (size_t i = 0; i < size; ++i) {
+        if (write(buffer[i]) == 1) {
+          bytesWritten++;
+        } else {
+          break; // Stop writing on buffer overflow
+        }
+      }
+      return bytesWritten;
+    }
+
+    const char *getData() {
+      return buffer;
+    }
+
+    size_t getSize() {
+      return bufferIndex;
+    }
+
+    void clear() {
+      bufferIndex = 0;
+      buffer[0] = '\0';
+    }
+};
