@@ -143,6 +143,52 @@ namespace SF22ASWT
             return true;
         }
 
+        /// <summary>
+        /// reads data offset pointers and sizes of sample data, not the actual data
+        /// as the data is read from file on demand
+        /// </summary>
+        /// <param name="br"></param>
+        /// <returns></returns>
+        bool read_sdta_block(File &file, sdta_rec_lazy &sdta)
+        {
+            char fourCC[4];
+            while (file.available())
+            {
+                if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(SDTA_FOURCC_READ) //("read error - while getting sdtablock type")
+                DebugPrintFOURCC(fourCC);
+                if (verifyFourCC(fourCC) == false) FILE_ERROR(SDTA_FOURCC_INVALID) //("error - sdtablock type invalid")
+                
+                if (strncmp(fourCC, "smpl", 4) == 0)
+                {
+                    if ((lastReadCount = file.read(&sdta.smpl.size, 4)) != 4) FILE_ERROR(SDTA_SMPL_SIZE_READ) //("read error - while reading smpl size")
+                    sdta.smpl.position = file.position();
+                    // skip sample data
+                    if (file.seek(sdta.smpl.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SMPL_DATA_SKIP, sdta.smpl.size) //("seek error - while skipping smpl data")
+                }
+                else if (strncmp(fourCC, "sm24", 4) == 0)
+                {
+                    if ((lastReadCount = file.read(&sdta.sm24.size, 4)) != 4) FILE_ERROR(SDTA_SM24_SIZE_READ) //("read error - while reading sm24 size")
+                    sdta.sm24.position = file.position();
+                    // skip sample data
+                    if (file.seek(sdta.sm24.size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_SM24_DATA_SKIP, sdta.sm24.size) //("seek error - while skipping sm24 data")
+                }
+                else if (strncmp(fourCC, "LIST", 4) == 0)
+                {
+                    // skip back
+                    if (file.seek(file.position()-4) == false) FILE_SEEK_ERROR(SDTA_BACK_SEEK, -4)
+                    return true;
+                }
+                else
+                {
+                    // normally unknown blocks should be ignored
+                    uint32_t size = 0;
+                    if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(SDTA_UNKNOWN_BLOCK_SIZE_READ) //("read error - while getting unknown sdta block size")
+                    if (file.seek(size, SeekCur) == false) FILE_SEEK_ERROR(SDTA_UNKNOWN_BLOCK_DATA_SKIP, size) //("seek error - while skipping unknown sdta block")
+                }
+            }
+            return true;
+        }
+
         void FreePrevSampleData()
         {
             DebugPrintln("try to free prev loaded sampledata");
