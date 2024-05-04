@@ -11,7 +11,7 @@
 #define USerial SerialUSB
 #endif
 
-
+SF22ASWT::ReaderLazy sf22aswt;
 
 const int SERIAL_RX_BUFFER_SIZE = 256;
 bool cardInitialized = false;
@@ -97,11 +97,10 @@ void processSerialCommand()
     else if (strncmp(serialRxBuffer, "read_file:", 10) == 0)
     {
         if (bytesRead <= 11) { USerial.print("read_file path parameter missing\n"); USerialSendAck_KO(); return; }
-        
         long startTime = micros();
-        if (SF22ASWTreader::ReadFile(&serialRxBuffer[10]) == false)
+        if (sf22aswt.ReadFile(&serialRxBuffer[10]) == false)
         {
-            SF22ASWT::printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
             // TODO. open and print a part of file contents if possible
@@ -115,51 +114,51 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_info_block", 16) == 0)
     {
-        if (SF22ASWTreader::lastReadWasOK == false) {
+        if (sf22aswt.lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
         }
         /* this is just a test to see how a string can be generated using the common Print class
         MemoryStream ms(1024);
-        SF22ASWTreader::PrintInfoBlock(ms);
+        sf22aswt.PrintInfoBlock(ms);
         USerial.print(ms.getData());
         */
 
-        SF22ASWTreader::PrintInfoBlock(USerial);
+        sf22aswt.PrintInfoBlock(USerial);
         USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "print_file_info", 15) == 0)
     {
-        if (SF22ASWTreader::lastReadWasOK == false) {
+        if (sf22aswt.lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
         }
-        USerial.print("\n*** info ***\nfile size: "); USerial.print(SF22ASWT::fileSize);
-        USerial.print(", sfbk size: "); USerial.print(SF22ASWTreader::sfbk->size);
-        USerial.print(", info size: "); USerial.print(SF22ASWTreader::sfbk->info_size);
-        USerial.print(", sdta size:"); USerial.print(SF22ASWTreader::sfbk->sdta.size);
-        USerial.print(", pdta size: "); USerial.print(SF22ASWTreader::sfbk->pdta.size);
+        USerial.print("\n*** info ***\nfile size: "); USerial.print(sf22aswt.fileSize);
+        USerial.print(", sfbk size: "); USerial.print(sf22aswt.sfbk.size);
+        USerial.print(", info size: "); USerial.print(sf22aswt.sfbk.info_size);
+        USerial.print(", sdta size:"); USerial.print(sf22aswt.sfbk.sdta.size);
+        USerial.print(", pdta size: "); USerial.print(sf22aswt.sfbk.pdta.size);
         USerial.print("\n");
-        USerial.print("inst pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.inst_position); 
-        USerial.print(", inst count: "); USerial.println(SF22ASWTreader::sfbk->pdta.inst_count);
-        USerial.print("ibag pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.ibag_position); 
-        USerial.print(", ibag count: "); USerial.println(SF22ASWTreader::sfbk->pdta.ibag_count);
-        USerial.print("igen pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.igen_position); 
-        USerial.print(", igen count: "); USerial.println(SF22ASWTreader::sfbk->pdta.igen_count);
-        USerial.print("shdr pos: "); USerial.print(SF22ASWTreader::sfbk->pdta.shdr_position); 
-        USerial.print(", shdr count: "); USerial.println(SF22ASWTreader::sfbk->pdta.shdr_count);
+        USerial.print("inst pos: "); USerial.print(sf22aswt.sfbk.pdta.inst_position); 
+        USerial.print(", inst count: "); USerial.println(sf22aswt.sfbk.pdta.inst_count);
+        USerial.print("ibag pos: "); USerial.print(sf22aswt.sfbk.pdta.ibag_position); 
+        USerial.print(", ibag count: "); USerial.println(sf22aswt.sfbk.pdta.ibag_count);
+        USerial.print("igen pos: "); USerial.print(sf22aswt.sfbk.pdta.igen_position); 
+        USerial.print(", igen count: "); USerial.println(sf22aswt.sfbk.pdta.igen_count);
+        USerial.print("shdr pos: "); USerial.print(sf22aswt.sfbk.pdta.shdr_position); 
+        USerial.print(", shdr count: "); USerial.println(sf22aswt.sfbk.pdta.shdr_count);
     }
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
-        if (SF22ASWTreader::lastReadWasOK == false) {
+        if (sf22aswt.lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
         }
         long startTime = micros();
-        SF22ASWTreader::printInstrumentListAsJson(USerial);
+        sf22aswt.printInstrumentListAsJson(USerial);
         long endTime = micros();
         USerial.print("list instruments took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
@@ -167,13 +166,13 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "list_presets", 12) == 0)
     {
-        if (SF22ASWTreader::lastReadWasOK == false) {
+        if (sf22aswt.lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
         }
         long startTime = micros();
-        SF22ASWTreader::printPresetListAsJson(USerial);
+        sf22aswt.printPresetListAsJson(USerial);
         long endTime = micros();
         USerial.print("list presets took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
@@ -181,7 +180,7 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "load_instrument:", 16) == 0)
     {
-        if (SF22ASWTreader::lastReadWasOK == false) {
+        if (sf22aswt.lastReadWasOK == false) {
             USerial.println("file not open or last read was not ok");
             USerialSendAck_KO();
             return;
@@ -195,9 +194,9 @@ void processSerialCommand()
         long startTime = micros();
         
         SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
-        if (SF22ASWTreader::load_instrument_data(index, inst_temp) == false)
+        if (sf22aswt.load_instrument_data(index, inst_temp) == false)
         {
-            SF22ASWT::printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
@@ -214,14 +213,14 @@ void processSerialCommand()
         //USerial.print("Start to load sample data from file\n");
         startTime = micros();
         
-        if (SF22ASWT::ReadSampleDataFromFile(inst_temp) == false)
+        if (sf22aswt.ReadSampleDataFromFile(inst_temp) == false)
         {
-            SF22ASWT::printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo();
             USerialSendAck_KO();
             return;
         }
         USerial.print("current instrument sample data size inclusive padding: ");
-        USerial.print(SF22ASWT::totalSampleDataSizeBytes);
+        USerial.print(sf22aswt.totalSampleDataSizeBytes);
         USerial.println(" bytes");
         
         endTime = micros();
@@ -265,7 +264,7 @@ void processSerialCommand()
         // copy the old instrument_data pointer so we can delete the used data later
         AudioSynthWavetable::instrument_data *wt_inst_old = WaveTableSynth::wt_inst;
         
-        if (SF22ASWTreader::load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &WaveTableSynth::wt_inst) == false)
+        if (sf22aswt.load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &WaveTableSynth::wt_inst) == false)
         {
             USerial.println("load_first_instrument_from_file error!");
             USerialSendAck_KO();

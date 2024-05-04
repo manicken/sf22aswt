@@ -290,23 +290,6 @@ namespace SF22ASWT
         }
     };
 
-    class smpl_rec
-    {
-      public:
-        /** smpl data offset as from the beginning of the file */
-        uint64_t position = 0;
-        /** smpl data size */
-        uint32_t size = 0;
-    };
-
-    class sdta_rec_lazy
-    {
-      public:
-        uint32_t size; // comes from parent LIST
-        smpl_rec smpl;
-        smpl_rec sm24;
-    };
-
     class phdr_rec
     {
       public:
@@ -536,6 +519,23 @@ namespace SF22ASWT
         uint32_t shdr_count = 0;
 
 
+    };
+
+    class smpl_rec
+    {
+      public:
+        /** smpl data offset as from the beginning of the file */
+        uint64_t position = 0;
+        /** smpl data size */
+        uint32_t size = 0;
+    };
+
+    class sdta_rec_lazy
+    {
+      public:
+        uint32_t size; // comes from parent LIST
+        smpl_rec smpl;
+        smpl_rec sm24;
     };
 
     class sfbk_rec_lazy
