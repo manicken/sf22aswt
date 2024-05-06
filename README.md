@@ -6,71 +6,9 @@ and future structural changes can occur<br>
 <br>
 To use this library:<br>
 download this repository and<br>
-copy the whole dir SF2 to your 'sketch folder'/'where you store your main.cpp file'<br>
+copy the contents of src (all files starting with sf22aswt) to your 'sketch folder' or where you store your main.cpp file<br>
 <br>
-then the usage would be:<br>
-```
-#include <Arduino.h>
-#include "SF2/reader_lazy.h"
+how to use:<br>
 
-AudioSynthWavetable wavetable;
-AudioControlSGTL5000 outputCtrl;
-
-AudioOutputI2S i2sOut;
-AudioConnection ac1(wavetable, 0, i2sOut, 0);
-AudioConnection ac2(wavetable, 0, i2sOut, 1);
-
-AudioSynthWavetable::instrument_data *wt_inst;
-
-void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
-  wavetable.playNote(note, velocity);
-}
-void usbMidi_NoteOff(byte channel, byte note, byte velocity) {
-  wavetable.stop();
-}
-void setup()
-{
-    AudioMemory(8);
-    Serial.begin(115200);
-    delay(500); // give host a little extra time to auto reconnect
-    outputCtrl.enable();
-    outputCtrl.volume(1.0f);
-
-    usbMIDI.setHandleNoteOn(usbMidi_NoteOn);
-    usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
-
-Serial.println("USB serial port initialized!"); // try to see if i can receive this
-    if (!SD.begin(BUILTIN_SDCARD)) {
-          Serial.print("SD initialization failed!\n");
-    }
-
-    // copy the old instrument_data pointer so we can delete the used data later
-    AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
-
-    int instrumentIndex = 0;
-    if (SF2::lazy_reader::load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
-    {
-        Serial.println("load_instrument_from_file error!");
-    }
-    else
-    {
-        wavetable.setInstrument(*wt_inst);
-
-        // delete prev inst data if exists
-        // Check if aswt_id is not nullptr and delete the memory it's pointing to
-        if(wt_inst_old != nullptr)
-        {
-            delete wt_inst_old;
-            wt_inst_old = nullptr; // It's a good practice to set deleted pointers to nullptr
-        }
-        Serial.println("load_instrument_from_file OK!");
-    }
-    
-}
-
-void loop()
-{
-  usbMIDI.read();
-}
-```
-
+[Simple](https://github.com/manicken/sf22aswt/tree/main/examples/simple)
+[Advanced](https://github.com/manicken/sf22aswt/tree/main/examples/advanced)
