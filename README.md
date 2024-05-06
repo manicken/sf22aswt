@@ -10,6 +10,6 @@ copy the contents of src (all files starting with sf22aswt) to your 'sketch fold
 <br>
 ## Example code<br><br>
 
-[Simple](https://github.com/manicken/sf22aswt/tree/main/examples/simple)  use this as a starting point for your own projects<br>
+[Simple](https://github.com/manicken/sf22aswt/tree/main/examples/simple)  use this as a starting point for your own projects, note that it uses a simplified loading function load_instrument_from_file which can be found @ sf22aswt_reader_lazy.cpp that function can be used as a starting point for more advanced use cases.<br>
 <br>
 [Advanced](https://github.com/manicken/sf22aswt/tree/main/examples/advanced)  this is mostly intended to use together with [sf22aswtTester](https://github.com/manicken/sf22aswtTester) which uses serial commands to control the loading of files and instruments, it also have file upload functionality<br>
