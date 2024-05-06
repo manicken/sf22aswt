@@ -8,8 +8,8 @@
 #define USerial SerialUSB
 #endif
 
-// this mode takes 2192 bytes of flash
-#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
+// this mode takes 448 bytes of flash
+//#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
 
 
 namespace SF22ASWT::Error

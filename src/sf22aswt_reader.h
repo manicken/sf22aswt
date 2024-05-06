@@ -1,3 +1,17 @@
+/**
+ * this is a soundfont 2 reader that reads 
+ * the following blocks into ram:
+ * info
+ * pdta 
+ * sdta (only store pointers to where the sample data is located in the file)
+ * 
+ * note. this class is not completed, and was created before the lazy reader 
+ * mostly as a development guide
+ * maybe it will be completed in the future to include the needed functions
+ * see down 
+ * 
+ */
+
 #pragma once
 
 #include <Arduino.h>
@@ -5,34 +19,31 @@
 #include "sf22aswt_enums.h"
 #include "sf22aswt_structures.h"
 #include "sf22aswt_helpers.h"
-#include "sf22aswt_common.h"
+#include "sf22aswt_reader_base.h"
 #include "sf22aswt_converter.h"
-
-#ifdef DEBUG
-  #define USerial SerialUSB1
-  #define DebugPrint(args) USerial.print(args);
-  #define DebugPrintln(args) USerial.println(args);
-  #define DebugPrint_Text_Var(text, var) USerial.print(text); USerial.print(var);
-  #define DebugPrintln_Text_Var(text, var) USerial.print(text); USerial.println(var);
-  #define DebugPrintFOURCC(fourCC) USerial.print(">>>"); Helpers::printRawBytes(USerial, fourCC, 4); USerial.println("<<<");
-  #define DebugPrintFOURCC_size(size) USerial.print("size: "); USerial.print(size);  USerial.print("\n");
-#else
-  #define DebugPrint(args)
-  #define DebugPrintln(args)
-  #define DebugPrint_Text_Var(text, var)
-  #define DebugPrintln_Text_Var(text, var)
-  #define DebugPrintFOURCC(fourCC)
-  #define DebugPrintFOURCC_size(size)
-#endif
 
 namespace SF22ASWT
 {
-    class Reader : public SF22ASWT::common
+    class Reader : public SF22ASWT::ReaderBase
     {
       public:
         sfbk_rec sfbk;
 
         bool ReadFile(String filePath);
+
+      /* TODO implement the following functions
+        void printInstrumentListAsJson(Stream &stream);
+        void printPresetListAsJson(Stream &stream);
+        bool load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst);
+        bool load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id);
+        void PrintInfoBlock(Print &stream);
+      */
+
+      private:
         bool read_pdta_block(File &br);
+
+      /* TODO implement the following function
+        bool fillBagsOfGens(bag_of_gens* bags, int ibag_startIndex, int ibag_count);
+      */
     };
 }

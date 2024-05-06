@@ -228,28 +228,28 @@ namespace SF22ASWT
         /** The SoundFont specification version */
         sfVersionTag ifil;
         /** The sound engine for which the SoundFont was optimized */
-        String isng;
+        String isng = "";
         /** The name of the SoundFont */
-        String INAM;
+        String INAM = "";
 
         // optional data fields
 
         /** A sound data ROM to which any ROM samples refer */
-        String irom;
+        String irom = "";
         /** A sound data ROM revision to which any ROM samples refer */
         sfVersionTag iver;
         /** The creation date of the SoundFont, conventionally in the 'Month Day, Year' format */
-        String ICRD;
+        String ICRD = "";
         /** The author or authors of the SoundFont */
-        String IENG;
+        String IENG = "";
         /** The product for which the SoundFont is intended */
-        String IPRD;
+        String IPRD = "";
         /** Copyright assertion string associated with the SoundFont */
-        String ICOP;
+        String ICOP = "";
         /** Any comments associated with the SoundFont */
-        String ICMT;
+        String ICMT = "";
         /** The tool used to create or edit the SoundFont */
-        String ISFT;
+        String ISFT = "";
 
         /*String ToString()
         {
@@ -408,6 +408,12 @@ namespace SF22ASWT
     class bag_of_gens
     {
       public:
+        ~bag_of_gens() {
+          if (items != nullptr)
+          {
+            delete[] items;
+          }
+        }
         /** item count */
         uint16_t count = 0;
         gen_rec* items;

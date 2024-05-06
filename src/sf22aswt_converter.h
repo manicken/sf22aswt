@@ -6,7 +6,7 @@
 #include "sf22aswt_enums.h"
 #include "sf22aswt_structures.h"
 #include "sf22aswt_helpers.h"
-#include "sf22aswt_common.h"
+#include "sf22aswt_reader_base.h"
 
 namespace SF22ASWT::converter
 {
