@@ -1,12 +1,12 @@
 {
     "name": "sf22aswt",
-    "version": "0.1",
-    "description": "Reads a Soundfont2 sf2 file that can then be converted into a object that can be used with Teensy AudioSynthWavetable object",
+    "version": "0.1.0",
+    "description": "Reads a Soundfont2 sf2 file that can then be converted into a object that can be used with Teensy AudioSynthWavetable, (note uses lazy loading for minimal ram usage)",
     "keywords": "soundfont, sf2, teensy, audio, synth, wavetable",
     "repository":
     {
       "type": "git",
-      "url": "https://github.com/manicken/sf2Reader.git"
+      "url": "https://github.com/manicken/sf22aswt.git"
     },
     "authors":
     [

@@ -7,6 +7,7 @@ and future structural changes can occur<br>
 To use this library:<br>
 download this repository and<br>
 copy the contents of src (all files starting with sf22aswt) to your 'sketch folder' or where you store your main.cpp file<br>
+note. I have prepared it to be included into the Arduino + Platformio libraries
 <br>
 ## Example code<br><br>
 
