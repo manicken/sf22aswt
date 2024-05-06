@@ -8,7 +8,9 @@ To use this library:<br>
 download this repository and<br>
 copy the contents of src (all files starting with sf22aswt) to your 'sketch folder' or where you store your main.cpp file<br>
 <br>
-how to use:<br>
+## Example code<br><br>
 
-[Simple](https://github.com/manicken/sf22aswt/tree/main/examples/simple)
-[Advanced](https://github.com/manicken/sf22aswt/tree/main/examples/advanced)
+use this as a starting point for your own projects<br>
+[Simple](https://github.com/manicken/sf22aswt/tree/main/examples/simple)<br><br>
+this is mostly intended to use together with [sf22aswtTester](https://github.com/manicken/sf22aswtTester)<br>
+[Advanced](https://github.com/manicken/sf22aswt/tree/main/examples/advanced)<br>

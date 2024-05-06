@@ -9,6 +9,7 @@ AudioConnection ac1(wavetable, 0, i2sOut, 0);
 AudioConnection ac2(wavetable, 0, i2sOut, 1);
 
 AudioSynthWavetable::instrument_data *wt_inst;
+SF22ASWTreader sf22aswt;
 
 void usbMidi_NoteOn(byte channel, byte note, byte velocity) {
   wavetable.playNote(note, velocity);
@@ -36,7 +37,7 @@ Serial.println("USB serial port initialized!"); // try to see if i can receive t
     AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
 
     int instrumentIndex = 0;
-    if (SF22ASWTreader::load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
+    if (sf22aswt.load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
     {
         Serial.println("load_instrument_from_file error!");
     }

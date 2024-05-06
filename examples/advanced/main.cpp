@@ -11,7 +11,7 @@
 #define USerial SerialUSB
 #endif
 
-SF22ASWT::ReaderLazy sf22aswt;
+SF22ASWTreader sf22aswt;
 
 const int SERIAL_RX_BUFFER_SIZE = 256;
 bool cardInitialized = false;

@@ -8,9 +8,8 @@
 // sf22asw_reader.h, and is only included for future use
 // when more ram is available or for specific demands
 #include <sf22aswt_reader.h>
-#define SF22ASWTreader SF22ASWT::reader
+#define SF22ASWTreader SF22ASWT::Reader
 #else
 #include <sf22aswt_reader_lazy.h>
-#define SF22ASWTreader SF22ASWT::reader_lazy
+#define SF22ASWTreader SF22ASWT::ReaderLazy
 #endif
-
