@@ -13,11 +13,15 @@
 
 namespace SF22ASWT
 {
-    /** make it easier to manage sample datas*/
-    class sample_data {
+    /** make it easier to manage sample datas
+     * TODO. store all samples in a memory pool/continuous array
+    */
+    class sample_data
+    {
       public:
         /** array of sample data*/
-        uint32_t *data; 
+        uint32_t *data = nullptr;
+        int dataSize;
     };
 
     struct sample_header { // rename it to sample_header instead of sample_data

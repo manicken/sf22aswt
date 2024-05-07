@@ -45,6 +45,8 @@ namespace SF22ASWT::Error
         MALLOC = 7 << ERROR_OPERATION_SHIFT,
         /** instrument index out of range */
         RANGE = 8 << ERROR_OPERATION_SHIFT,
+        /** use when available ram is not sufficient to fit the sample data */
+        INSUFF = 9 << ERROR_OPERATION_SHIFT,
 	};
     enum class Type
 	{
@@ -67,8 +69,9 @@ namespace SF22ASWT::Error
         INFO = 5 << ERROR_ROOT_LOCATION_SHIFT,
         SDTA = 6 << ERROR_ROOT_LOCATION_SHIFT,
         PDTA = 7 << ERROR_ROOT_LOCATION_SHIFT,
-        FUNCTION = 0xE << ERROR_ROOT_LOCATION_SHIFT,
-        RAM = 0xF << ERROR_ROOT_LOCATION_SHIFT,
+        RAM = 0xD << ERROR_ROOT_LOCATION_SHIFT,
+        EXTRAM = 0xE << ERROR_ROOT_LOCATION_SHIFT,
+        FUNCTION = 0xF << ERROR_ROOT_LOCATION_SHIFT,
 	};
     enum class FUNCTION
     {
@@ -124,7 +127,12 @@ namespace SF22ASWT::Error
     enum class Errors : uint16_t
     {
         NONE                    = 0x0000, // no error
+        /** usen when checking for available ram before allocating memory for sampledata */
+        RAM_SIZE_INSUFF          = ERROR(RAM, SIZE, INSUFF),
+        EXTRAM_SIZE_INSUFF       = ERROR(EXTRAM, SIZE, INSUFF),
+        /** MALLOC fail when allocating memory for sampledata */
         RAM_DATA_MALLOC         = ERROR(RAM, DATA, MALLOC),
+        EXTRAM_DATA_MALLOC      = ERROR(EXTRAM, DATA, MALLOC),
         FUNCTION_LOAD_INST_INDEX_RANGE = ERROR_SUB(FUNCTION, LOAD_INST, INDEX, RANGE),
 
         FILE_NOT_OPEN           = ERROR(FILE, NONE, OPEN), // file could not be opened

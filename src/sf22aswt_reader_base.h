@@ -11,16 +11,6 @@
 #define USerial SerialUSB1
 #endif
 
-#define USE_EXTMEM
-
-#ifdef USE_EXTMEM
-  #define SAMPLEDATA_MALLOC extmem_malloc
-  #define SAMPLEDATA_FREE   extmem_free
-#else
-  #define SAMPLEDATA_MALLOC malloc
-  #define SAMPLEDATA_FREE   free
-#endif
-
 
 #ifdef DEBUG
 #ifndef USerial
@@ -41,8 +31,16 @@
   #define DebugPrintFOURCC_size(size)
 #endif
 
+#define SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE 400000
+
 namespace SF22ASWT
 {
+    /**
+     * keeping track of all used ram, 
+     * have it global as multiple files can be loaded, 
+     * and for future use when multiple instruments can be loaded at once
+    */
+    extern int samples_usedRam; // 
     /**
      * this class is only intended for inherited use
      * and contains the 'common' stuff that is used on both lazy reader and 'normal' reader
@@ -54,12 +52,14 @@ namespace SF22ASWT
       public:
         uint32_t fileSize;
         String filePath;
+        
 
         bool lastReadWasOK = false;
 
         // TODO make all samples load into a single array for easier allocation / deallocation
         // also maybe have it as a own contained memory pool
         sample_data *samples;
+        bool samples_useExtMem = false;
         int sample_count = 0;
         int totalSampleDataSizeBytes = 0;
 
@@ -92,7 +92,7 @@ namespace SF22ASWT
 
         void FreePrevSampleData();
 
-        bool ReadSampleDataFromFile(instrument_data_temp &inst);
+        bool ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam = false);
 
 #pragma region gen_get_functions
         bool get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount);

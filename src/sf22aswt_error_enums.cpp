@@ -14,6 +14,7 @@ namespace SF22ASWT::Error
         (uint16_t)Operation::SEEKSKIP,
         (uint16_t)Operation::MALLOC,
         (uint16_t)Operation::RANGE,
+        (uint16_t)Operation::INSUFF,
     };
     const int Operation_LockupTable_Size = sizeof(Operation_LockupTable) / sizeof(Operation_LockupTable[0]);
     const char* const Operation_Strings[] PROGMEM = {
@@ -25,12 +26,14 @@ namespace SF22ASWT::Error
         "SEEKSKIP",
         "MALLOC",
         "RANGE",
+        "INSUFF",
     };
 
     const uint16_t RootLocation_LockupTable[] PROGMEM = {
         // do the shifts here to optimize the lockup function code
         (uint16_t)RootLocation::FUNCTION,
         (uint16_t)RootLocation::RAM,
+        (uint16_t)RootLocation::EXTRAM,
         (uint16_t)RootLocation::FILE,
         (uint16_t)RootLocation::RIFF,
         (uint16_t)RootLocation::LIST,
@@ -43,6 +46,7 @@ namespace SF22ASWT::Error
     const char* const RootLocation_Strings[] PROGMEM = {
         "FUNCTION",
         "RAM",
+        "EXTRAM",
         "FILE",
         "RIFF",
         "LIST",

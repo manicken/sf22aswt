@@ -3,6 +3,9 @@
 
 namespace SF22ASWT
 {
+    extern "C" uint8_t external_psram_size;
+    int samples_usedRam = 0;
+
     void ReaderBase::clearErrors()
     {
         lastErrorStr = "";
@@ -131,25 +134,28 @@ namespace SF22ASWT
         {
             if (samples[i].data != nullptr) {
                 DebugPrintln("freeing " + String(i) + " @ " + String((uint64_t)samples[i].data));
-                SAMPLEDATA_FREE(samples[i].data);
+                if (samples_useExtMem == false)
+                    free(samples[i].data);
+                else
+                    extmem_free(samples[i].data);
+
+                samples_usedRam -= samples[i].dataSize;
             }
         }
-        DebugPrintln("[OK]");
         delete[] samples;
+        DebugPrintln("[OK]");
         samples = nullptr;
     }
 
-    bool ReaderBase::ReadSampleDataFromFile(instrument_data_temp &inst)
+    bool ReaderBase::ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam)
     {
         clearErrors();
-
-        File file = SD.open(filePath.c_str());
-        if (!file) {lastError = Error::Errors::FILE_NOT_OPEN; return false;}
+        if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
+        
         if (samples != nullptr) {
             FreePrevSampleData();
         } 
-        samples = new sample_data[inst.sample_count];
-        sample_count = inst.sample_count;
+        // first calculate totalSampleDataSizeBytes as an early check to minimize unnecessary loading
         totalSampleDataSizeBytes = 0;
         for (int si=0;si<inst.sample_count;si++)
         {
@@ -157,9 +163,35 @@ namespace SF22ASWT
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
             totalSampleDataSizeBytes+=ary_length*4;
-            samples[si].data = nullptr; // clear the pointer so free above won't fail if prev. load was unsuccessful
         }
+        samples_useExtMem = (external_psram_size != 0) && (forceUseInternalRam == false);
+        
+        // early check for available ram
+        if (samples_useExtMem == false) {
+            if (totalSampleDataSizeBytes > (SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE - samples_usedRam)) {
+                lastError = Error::Errors::RAM_SIZE_INSUFF;
+                return false;
+            }
+
+        }
+        else {
+            if (totalSampleDataSizeBytes > ((external_psram_size * 1024 * 1024) - samples_usedRam)) {
+                lastError = Error::Errors::EXTRAM_SIZE_INSUFF;
+                return false;
+            }
+        }
+
+        samples = new sample_data[inst.sample_count];
+        sample_count = inst.sample_count;
         int allocatedSize = 0;
+        
+        if (samples_useExtMem)
+            USerial.println("using external ram (PSRAM)");
+
+
+        File file = SD.open(filePath.c_str());
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+
         for (int si=0;si<inst.sample_count;si++)
         {
             DebugPrintln_Text_Var("reading sample: ", si);
@@ -167,15 +199,24 @@ namespace SF22ASWT
             size_t length_8 = length_32*4;
             int pad_length = (length_32 % 128 == 0) ? 0 : (128 - length_32 % 128);
             int ary_length = length_32 + pad_length;
-            
-            samples[si].data = (uint32_t*)SAMPLEDATA_MALLOC(ary_length*4);
+            int ary_length_8 = ary_length*4;
+
+            if (samples_useExtMem == false) { // use internal ram
+                samples[si].data = (uint32_t*)malloc(ary_length_8);
+            }
+            else {
+                samples[si].data = (uint32_t*)extmem_malloc(ary_length_8);
+            }
+
             if (samples[si].data == nullptr) {
                 lastError = Error::Errors::RAM_DATA_MALLOC;
-                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length*4) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
+                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length_8) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
                 file.close();
                 FreePrevSampleData();
                 return false;
             }
+            samples[si].dataSize = ary_length_8;
+            samples_usedRam += ary_length_8;
 
             if (file.seek(inst.samples[si].sample_start) == false) {
                 //lastError = "@ sample " +  String(si) + " could not seek to data location in file";
@@ -201,7 +242,7 @@ namespace SF22ASWT
             inst.samples[si].sample = (int16_t*)samples[si].data;
             allocatedSize+=ary_length;
         }
-        
+        //USerial.print("Used ram for samples:"); USerial.println(samples_usedRam);
         file.close();
         return true;
     }
