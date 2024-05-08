@@ -110,8 +110,6 @@ namespace SF22ASWT::Error
         SHDR = 9 << ERROR_SUB_LOCATION_SHIFT,
     };
 	
-    
-    
     /** * Used for root errors * */
     #define ERROR(ROOT_LOCATION, TYPE, OPERATION) (\
                                     (uint16_t)SF22ASWT::Error::Operation::OPERATION + \
@@ -124,6 +122,13 @@ namespace SF22ASWT::Error
                                     (uint16_t)SF22ASWT::Error::ROOT_LOCATION::SUB_LOCATION + \
                                     (uint16_t)SF22ASWT::Error::RootLocation::ROOT_LOCATION)
     
+
+
+
+}
+
+namespace SF22ASWT
+{
     enum class Errors : uint16_t
     {
         NONE                    = 0x0000, // no error
@@ -264,23 +269,12 @@ namespace SF22ASWT::Error
         PDTA_SHDR_DATA_SKIP     = ERROR_SUB(PDTA, SHDR, DATA, SEEKSKIP),
     };
 
-#ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
+    #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
 
     bool printError(const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code);
     
 #endif
     void printError(Errors pe);
-}
-
-namespace SF22ASWT
-{
-    enum class Errors : uint16_t
-    {
-        NONE                    = 0x0000, // no error
-        /** usen when checking for available ram before allocating memory for sampledata */
-        RAM_SIZE_INSUFF          = ERROR(RAM, SIZE, INSUFF),
-        EXTRAM_SIZE_INSUFF       = ERROR(EXTRAM, SIZE, INSUFF),
-    };
 }
 
 namespace SF22ASWT::Error::Test

@@ -32,9 +32,9 @@
   #define DebugPrintFOURCC_size(size)
 #endif
 
-#define FILE_ERROR(ERROR_TYPE) {lastError=SF22ASWT::Error::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-#define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=SF22ASWT::Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
-#define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (SF22ASWT::Error::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
+#define FILE_ERROR(ERROR_TYPE) {lastError=SF22ASWT::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
+#define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=SF22ASWT::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
+#define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (SF22ASWT::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
         
 
 #define SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE 400000
@@ -72,7 +72,7 @@ namespace SF22ASWT
 #ifdef SF22ASWT_DEBUG
         String lastErrorStr; // used to provide additional info if needed
 #endif
-        SF22ASWT::Error::Errors lastError = SF22ASWT::Error::Errors::NONE;
+        SF22ASWT::Errors lastError = SF22ASWT::Errors::NONE;
         uint32_t lastErrorPosition;
         size_t lastReadCount = 0; // used to track errors
         void clearErrors();

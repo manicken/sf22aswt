@@ -9,7 +9,7 @@ namespace SF22ASWT
         clearErrors();
 
         File file = SD.open(filePath);
-        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         fileSize = file.size();
 
@@ -80,9 +80,9 @@ namespace SF22ASWT
     bool ReaderLazy::printInstrumentListAsJson(Stream &stream)
     {
         clearErrors();
-        if (lastReadWasOK == false) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
+        if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (file.seek(sfbk.pdta.inst_position) == false) FILE_ERROR(PDTA_INST_DATA_SEEK)
 
@@ -105,9 +105,9 @@ namespace SF22ASWT
     bool ReaderLazy::printPresetListAsJson(Stream &stream)
     {
         clearErrors();
-        if (lastReadWasOK == false) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
+        if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (file.seek(sfbk.pdta.phdr_position) == false) FILE_ERROR(PDTA_PHDR_DATA_SEEK)
         
@@ -136,13 +136,13 @@ namespace SF22ASWT
     bool ReaderLazy::load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst)
     {
         clearErrors();
-        if (lastReadWasOK == false) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
+        if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (index > sfbk.pdta.inst_count - 1){ 
             //lastError = "load instrument index out of range";
-            lastError = SF22ASWT::Error::Errors::FUNCTION_LOAD_INST_INDEX_RANGE;
+            lastError = SF22ASWT::Errors::FUNCTION_LOAD_INST_INDEX_RANGE;
             return false;
         }
 
@@ -305,9 +305,9 @@ namespace SF22ASWT
     bool ReaderLazy::PrintInfoBlock(Print &stream)
     {
         clearErrors();
-        if (lastReadWasOK == false) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
+        if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         SF22ASWT::INFO info;
         if (file.seek(sfbk.info_position) == false) FILE_ERROR(INFO_DATA_SEEK)

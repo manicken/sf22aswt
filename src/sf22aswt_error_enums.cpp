@@ -147,6 +147,14 @@ namespace SF22ASWT::Error
         "IGEN",
         "SHDR",
     };
+    
+#endif
+
+} // 
+
+namespace SF22ASWT
+{
+#ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
     bool printError(const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code)
     {
         for (int i=0;i<size;i++) {
@@ -159,7 +167,6 @@ namespace SF22ASWT::Error
         return false;
     }
 #endif
-
     void printError(Errors pe)
     {
         uint16_t code = (uint16_t)pe;
@@ -203,12 +210,12 @@ namespace SF22ASWT::Error
         printError(Operation_LockupTable, Operation_Strings, Operation_LockupTable_Size, operation);
 #endif
     }
-} // 
+}
 
 
 namespace SF22ASWT::Error::Test
 {
-    const Errors ErrorList[] PROGMEM = {
+    const SF22ASWT::Errors ErrorList[] PROGMEM = {
         Errors::NONE,
         Errors::RAM_DATA_MALLOC,
         Errors::FUNCTION_LOAD_INST_INDEX_RANGE,
@@ -349,7 +356,7 @@ namespace SF22ASWT::Error::Test
         USerial.print("Error count: "); USerial.print(ErrorList_Size-1); USerial.write('\n');
         for (int i=0;i<ErrorList_Size;i++)
         {
-            printError((Errors)ErrorList[i]);
+            printError((SF22ASWT::Errors)ErrorList[i]);
             //USerial.println();
             USerial.write('\n');
         
