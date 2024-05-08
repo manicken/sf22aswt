@@ -8,7 +8,7 @@ namespace SF22ASWT
 
     void ReaderBase::clearErrors()
     {
-        lastErrorStr = "";
+        //lastErrorStr = "";
         lastError = Error::Errors::NONE;
         lastErrorPosition = 0;
         lastReadCount = 0;
@@ -17,7 +17,7 @@ namespace SF22ASWT
     void ReaderBase::printSF2ErrorInfo()
     {
         SF22ASWT::Error::printError(lastError); USerial.print("\n");
-        USerial.println(lastErrorStr);
+        //USerial.println(lastErrorStr);
         USerial.print(" @ position: ");
         USerial.print(lastErrorPosition);
         USerial.print(", lastReadCount: ");
@@ -184,10 +184,10 @@ namespace SF22ASWT
         samples = new sample_data[inst.sample_count];
         sample_count = inst.sample_count;
         int allocatedSize = 0;
-        
+#ifdef DEBUG
         if (samples_useExtMem)
             USerial.println("using external ram (PSRAM)");
-
+#endif
 
         File file = SD.open(filePath.c_str());
         if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
@@ -210,7 +210,7 @@ namespace SF22ASWT
 
             if (samples[si].data == nullptr) {
                 lastError = Error::Errors::RAM_DATA_MALLOC;
-                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length_8) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
+                //lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length_8) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
                 file.close();
                 FreePrevSampleData();
                 return false;
@@ -327,7 +327,7 @@ namespace SF22ASWT
     {
         SF2GeneratorAmount genval;
         if (get_parameter_value(bags, sampleIndex, SFGenerator::sampleID, &genval) == false) return false;
-        uint64_t seekPos = sfbk.pdta.shdr_position + genval.UAmount*shdr_rec::Size;
+        uint32_t seekPos = sfbk.pdta.shdr_position + genval.UAmount*shdr_rec::Size;
         if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_SHDR_DATA_SEEK, seekPos)
         if (file.read(shdr, shdr_rec::Size) != shdr_rec::Size) FILE_ERROR(PDTA_SHDR_DATA_READ)
         return true;
@@ -371,8 +371,8 @@ namespace SF22ASWT
 #ifdef DEBUG
         for (int i2=0;i2<gen.count;i2++)
         {
-            DebugPrint_Text_Var("  sfGenOper:", (uint16_t)bags[i].items[i2].sfGenOper);
-            DebugPrintln_Text_Var(", value:", bags[i].items[i2].genAmount.UAmount);
+            DebugPrint_Text_Var("  sfGenOper:", (uint16_t)gen.items[i2].sfGenOper);
+            DebugPrintln_Text_Var(", value:", gen.items[i2].genAmount.UAmount);
         }
 #endif
     }

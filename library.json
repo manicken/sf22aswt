@@ -1,6 +1,6 @@
 {
     "name": "sf22aswt",
-    "version": "0.1.1",
+    "version": "0.1.2",
     "description": "Lazy loading a Soundfont2 sf2 file that can then be converted into a object, that can then be used with Teensy AudioSynthWavetable. Latest release have automatic use of extmem if available, and also have early check if available ram is sufficient.",
     "keywords": "soundfont, sf2, teensy, audio, synth, wavetable",
     "repository":

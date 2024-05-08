@@ -6,11 +6,7 @@ namespace SF22ASWT
     bool Reader::ReadFile(String filePath)
     {
         File file = SD.open(filePath.c_str());
-        if (!file) {  
-            //lastError = "warning - cannot open file " + filePath;
-            lastError = Error::Errors::FILE_NOT_OPEN;
-            return false;
-        }
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         fileSize = file.size();
 
         char fourCC[4];
@@ -27,46 +23,45 @@ namespace SF22ASWT
         
         if (strncmp(fourCC, "sfbk", 4) != 0) FILE_ERROR(RIFF_FOURCC_MISMATCH)//("error - not a sfbk fileformat")
 
-        char listTag[4];
-        uint32_t listSize = 0;
+        uint32_t chunkSize = 0;
         while (file.available() > 0)
         {
             // every block starts with a LIST tag
-            if ((lastReadCount = file.readBytes(listTag, 4)) != 4) FILE_ERROR(LIST_FOURCC_READ)//("read error - while reading listTag")
-            if (verifyFourCC(listTag) == false) FILE_ERROR(LIST_FOURCC_INVALID)//("error - listTag invalid")
-            if (strncmp(listTag, "LIST", 4) != 0) FILE_ERROR(LIST_FOURCC_MISMATCH)//("error - listTag is not LIST")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LIST_FOURCC_READ)//("read error - while reading listTag")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR(LIST_FOURCC_INVALID)//("error - listTag invalid")
+            if (strncmp(fourCC, "LIST", 4) != 0) FILE_ERROR(LIST_FOURCC_MISMATCH)//("error - listTag is not LIST")
 
             
-            if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ)//("read error - while getting listSize")
+            if ((lastReadCount = file.read(&chunkSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ)//("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LISTTYPE_FOURCC_READ)//("read error - while reading listType")
             DebugPrintFOURCC(fourCC);
-            DebugPrintFOURCC_size(listSize);
+            DebugPrintFOURCC_size(chunkSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(LISTTYPE_FOURCC_INVALID)//("error - invalid listType")
             
             
             if (strncmp(fourCC, "INFO", 4) == 0)
             {
-                sfbk.info.size = listSize;
+                sfbk.info.size = chunkSize;
                 if (readInfoBlock(file, sfbk.info) == false) return false;
                 //file.close(); return true; // early return debug test
             }
             else if (strncmp(fourCC, "sdta", 4) == 0)
             {
-                sfbk.sdta.size = listSize;
+                sfbk.sdta.size = chunkSize;
                 if (read_sdta_block(file, sfbk.sdta) == false) return false;
                 //file.close(); return true; // early return debug test
             }
             else if (strncmp(fourCC, "pdta", 4) == 0)
             {
-                sfbk.pdta.size = listSize;
+                sfbk.pdta.size = chunkSize;
                 if (read_pdta_block(file) == false) return false;
                 //file.close(); return true; // early return debug test
             }
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP,listSize - 4)//("seek error - while skipping unknown sfbk root block")
+                if (file.seek(chunkSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP, chunkSize - 4)//("seek error - while skipping unknown sfbk root block")
             }
         }
         this->filePath = filePath;

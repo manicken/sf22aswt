@@ -11,6 +11,7 @@
 #define USerial SerialUSB1
 #endif
 
+//#define DEBUG
 
 #ifdef DEBUG
 #ifndef USerial
@@ -30,6 +31,11 @@
   #define DebugPrintFOURCC(fourCC)
   #define DebugPrintFOURCC_size(size)
 #endif
+
+#define FILE_ERROR(ERROR_TYPE) {lastError=SF22ASWT::Error::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
+#define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=SF22ASWT::Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
+#define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (SF22ASWT::Error::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
+        
 
 #define SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE 400000
 
@@ -64,16 +70,13 @@ namespace SF22ASWT
         int totalSampleDataSizeBytes = 0;
 
 
-        String lastErrorStr; // used to provide additional info if needed
+        //String lastErrorStr; // used to provide additional info if needed
         Error::Errors lastError = Error::Errors::NONE;
-        uint64_t lastErrorPosition;
+        uint32_t lastErrorPosition;
         size_t lastReadCount = 0; // used to track errors
         void clearErrors();
         //#define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-        #define FILE_ERROR(ERROR_TYPE) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-        #define FILE_SEEK_ERROR(ERROR_TYPE, SEEK_POS) {lastError=Error::Errors::ERROR_TYPE; lastErrorPosition = file.position(); lastReadCount = SEEK_POS; file.close(); return false; }
-        #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (Error::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
-        
+
         void printSF2ErrorInfo();
 
         bool ReadStringUsingLeadingSize(File &file, String& string);

@@ -3,14 +3,14 @@
 
 namespace SF22ASWT
 {
-    
     bool ReaderLazy::ReadFile(const char * filePath)
     {
         lastReadWasOK = false;
         clearErrors();
 
         File file = SD.open(filePath);
-        if (!file) {  lastError = Error::Errors::FILE_NOT_OPEN; return false; }
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+
         fileSize = file.size();
 
         char fourCC[4];
@@ -27,48 +27,47 @@ namespace SF22ASWT
         
         if (strncmp(fourCC, "sfbk", 4) != 0) FILE_ERROR(RIFF_FOURCC_MISMATCH) //("error - not a sfbk fileformat")
 
-        char listTag[4];
-        uint32_t listSize = 0;
+        uint32_t chunkSize = 0;
         while (file.available() > 0)
         {
             // every block starts with a LIST tag
-            if ((lastReadCount = file.readBytes(listTag, 4)) != 4) FILE_ERROR(LIST_FOURCC_READ) //("read error - while reading listTag")
-            if (verifyFourCC(listTag) == false) FILE_ERROR(LIST_FOURCC_INVALID) //("error - listTag invalid")
-            if (strncmp(listTag, "LIST", 4) != 0) FILE_ERROR(LIST_FOURCC_MISMATCH) //("error - listTag is not LIST")
+            if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LIST_FOURCC_READ) //("read error - while reading listTag")
+            if (verifyFourCC(fourCC) == false) FILE_ERROR(LIST_FOURCC_INVALID) //("error - listTag invalid")
+            if (strncmp(fourCC, "LIST", 4) != 0) FILE_ERROR(LIST_FOURCC_MISMATCH) //("error - listTag is not LIST")
 
             
-            if ((lastReadCount = file.read(&listSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ) //("read error - while getting listSize")
+            if ((lastReadCount = file.read(&chunkSize, 4)) != 4) FILE_ERROR(LIST_SIZE_READ) //("read error - while getting listSize")
 
             if ((lastReadCount = file.readBytes(fourCC, 4)) != 4) FILE_ERROR(LISTTYPE_FOURCC_READ) //("read error - while reading listType")
             DebugPrintFOURCC(fourCC);
-            DebugPrintFOURCC_size(listSize);
+            DebugPrintFOURCC_size(chunkSize);
             if (verifyFourCC(fourCC) == false) FILE_ERROR(LISTTYPE_FOURCC_INVALID) //("error - invalid listType")
             
             
             if (strncmp(fourCC, "INFO", 4) == 0)
             {
                 sfbk.info_position = file.position(); // normally don't read info chunk to save ram
-                sfbk.info_size = listSize;
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(INFO_DATA_SKIP, listSize - 4) //("seek error - while skipping INFO block")
+                sfbk.info_size = chunkSize;
+                if (file.seek(chunkSize - 4, SeekCur) == false) FILE_SEEK_ERROR(INFO_DATA_SKIP, chunkSize - 4) //("seek error - while skipping INFO block")
                 
                 //file.close(); return true; // early return debug test
             }
             else if (strncmp(fourCC, "sdta", 4) == 0)
             {
-                sfbk.sdta.size = listSize;
+                sfbk.sdta.size = chunkSize;
                 if (read_sdta_block(file, sfbk.sdta) == false) return false;
                 //file.close(); return true; // early return debug test
             }
             else if (strncmp(fourCC, "pdta", 4) == 0)
             {
-                sfbk.pdta.size = listSize;
+                sfbk.pdta.size = chunkSize;
                 if (read_pdta_block(file, sfbk.pdta) == false) return false;
                 //file.close(); return true; // early return debug test
             }
             else
             {
                 // normally unknown blocks should be ignored
-                if (file.seek(listSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP, listSize - 4) //("seek error - while skipping unknown sfbk root block")
+                if (file.seek(chunkSize - 4, SeekCur) == false) FILE_SEEK_ERROR(LIST_UNKNOWN_BLOCK_DATA_SKIP, chunkSize - 4) //("seek error - while skipping unknown sfbk root block")
             }
         }
 
@@ -83,7 +82,7 @@ namespace SF22ASWT
         clearErrors();
         if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) FILE_ERROR(FILE_NOT_OPEN) // extra failsafe
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (file.seek(sfbk.pdta.inst_position) == false) FILE_ERROR(PDTA_INST_DATA_SEEK)
 
@@ -108,7 +107,7 @@ namespace SF22ASWT
         clearErrors();
         if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) FILE_ERROR(FILE_NOT_OPEN) // extra failsafe
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (file.seek(sfbk.pdta.phdr_position) == false) FILE_ERROR(PDTA_PHDR_DATA_SEEK)
         
@@ -139,7 +138,7 @@ namespace SF22ASWT
         clearErrors();
         if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) FILE_ERROR(FILE_NOT_OPEN) // extra failsafe
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         if (index > sfbk.pdta.inst_count - 1){ 
             //lastError = "load instrument index out of range";
@@ -147,7 +146,7 @@ namespace SF22ASWT
             return false;
         }
 
-        uint64_t seekPos = sfbk.pdta.inst_position + inst_rec::Size*index + 20;
+        uint32_t seekPos = sfbk.pdta.inst_position + inst_rec::Size*index + 20;
         if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_INST_DATA_SEEK, seekPos)
         uint16_t ibag_startIndex = 0;
         uint16_t ibag_endIndex = 0;
@@ -176,6 +175,7 @@ namespace SF22ASWT
 
         inst.sample_note_ranges = new uint8_t[inst.sample_count];
         inst.samples = new sample_header_temp[inst.sample_count];
+
         DebugPrint("\nsample count: "); DebugPrint(inst.sample_count);
         for (int si=0;si<inst.sample_count;si++)
         {
@@ -234,7 +234,7 @@ namespace SF22ASWT
 
     bool ReaderLazy::fillBagsOfGens(File &file, bag_of_gens* bags, int ibag_startIndex, int ibag_count)
     {
-        uint64_t seekPos = sfbk.pdta.ibag_position + bag_rec::Size*ibag_startIndex;
+        uint32_t seekPos = sfbk.pdta.ibag_position + bag_rec::Size*ibag_startIndex;
         if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_IBAG_DATA_SEEK, seekPos) //seek error to ibags
         DebugPrint("igen_ndxs: ");
         uint16_t igen_ndxs[ibag_count+1]; // +1 because of the soundfont structure 
@@ -307,7 +307,7 @@ namespace SF22ASWT
         clearErrors();
         if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
         File file = SD.open(filePath.c_str());
-        if (!file) FILE_ERROR(FILE_NOT_OPEN) // extra failsafe
+        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         SF22ASWT::INFO info;
         if (file.seek(sfbk.info_position) == false) FILE_ERROR(INFO_DATA_SEEK)

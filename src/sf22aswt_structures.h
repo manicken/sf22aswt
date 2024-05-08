@@ -535,7 +535,7 @@ namespace SF22ASWT
     {
       public:
         /** smpl data offset as from the beginning of the file */
-        uint64_t position = 0;
+        uint32_t position = 0;
         /** smpl data size */
         uint32_t size = 0;
     };
