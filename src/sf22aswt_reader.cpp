@@ -6,7 +6,7 @@ namespace SF22ASWT
     bool Reader::ReadFile(String filePath)
     {
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
+        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
         fileSize = file.size();
 
         char fourCC[4];

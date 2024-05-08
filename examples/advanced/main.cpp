@@ -25,7 +25,6 @@ void USerialSendAck_KO(){USerial.println("ACK_KO");}
 
 void setup()
 {
-    
     AudioMemory(128);
     WaveTableSynth::Init();
 	//Serial.begin(115200);

@@ -11,9 +11,9 @@
 #define USerial SerialUSB1
 #endif
 
-//#define DEBUG
+//#define SF22ASWT_DEBUG
 
-#ifdef DEBUG
+#ifdef SF22ASWT_DEBUG
 #ifndef USerial
   #define USerial SerialUSB1
 #endif
@@ -69,9 +69,10 @@ namespace SF22ASWT
         int sample_count = 0;
         int totalSampleDataSizeBytes = 0;
 
-
-        //String lastErrorStr; // used to provide additional info if needed
-        Error::Errors lastError = Error::Errors::NONE;
+#ifdef SF22ASWT_DEBUG
+        String lastErrorStr; // used to provide additional info if needed
+#endif
+        SF22ASWT::Error::Errors lastError = SF22ASWT::Error::Errors::NONE;
         uint32_t lastErrorPosition;
         size_t lastReadCount = 0; // used to track errors
         void clearErrors();

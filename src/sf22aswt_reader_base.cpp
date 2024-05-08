@@ -8,8 +8,10 @@ namespace SF22ASWT
 
     void ReaderBase::clearErrors()
     {
-        //lastErrorStr = "";
-        lastError = Error::Errors::NONE;
+#ifdef SF22ASWT_DEBUG
+        lastErrorStr = "";
+#endif
+        lastError = SF22ASWT::Error::Errors::NONE;
         lastErrorPosition = 0;
         lastReadCount = 0;
     }
@@ -17,7 +19,9 @@ namespace SF22ASWT
     void ReaderBase::printSF2ErrorInfo()
     {
         SF22ASWT::Error::printError(lastError); USerial.print("\n");
-        //USerial.println(lastErrorStr);
+#ifdef SF22ASWT_DEBUG
+        USerial.println(lastErrorStr);
+#endif
         USerial.print(" @ position: ");
         USerial.print(lastErrorPosition);
         USerial.print(", lastReadCount: ");
@@ -150,7 +154,7 @@ namespace SF22ASWT
     bool ReaderBase::ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam)
     {
         clearErrors();
-        if (lastReadWasOK == false) { lastError = Error::Errors::FILE_NOT_OPEN; return false; }
+        if (lastReadWasOK == false) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; }
         
         if (samples != nullptr) {
             FreePrevSampleData();
@@ -169,14 +173,14 @@ namespace SF22ASWT
         // early check for available ram
         if (samples_useExtMem == false) {
             if (totalSampleDataSizeBytes > (SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE - samples_usedRam)) {
-                lastError = Error::Errors::RAM_SIZE_INSUFF;
+                lastError = SF22ASWT::Error::Errors::RAM_SIZE_INSUFF;
                 return false;
             }
 
         }
         else {
             if (totalSampleDataSizeBytes > ((external_psram_size * 1024 * 1024) - samples_usedRam)) {
-                lastError = Error::Errors::EXTRAM_SIZE_INSUFF;
+                lastError = SF22ASWT::Error::Errors::EXTRAM_SIZE_INSUFF;
                 return false;
             }
         }
@@ -184,13 +188,13 @@ namespace SF22ASWT
         samples = new sample_data[inst.sample_count];
         sample_count = inst.sample_count;
         int allocatedSize = 0;
-#ifdef DEBUG
+#ifdef SF22ASWT_DEBUG
         if (samples_useExtMem)
             USerial.println("using external ram (PSRAM)");
 #endif
 
         File file = SD.open(filePath.c_str());
-        if (!file) { lastError = Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
+        if (!file) { lastError = SF22ASWT::Error::Errors::FILE_NOT_OPEN; return false; } // extra failsafe
 
         for (int si=0;si<inst.sample_count;si++)
         {
@@ -209,8 +213,10 @@ namespace SF22ASWT
             }
 
             if (samples[si].data == nullptr) {
-                lastError = Error::Errors::RAM_DATA_MALLOC;
-                //lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length_8) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
+                lastError = SF22ASWT::Error::Errors::RAM_DATA_MALLOC;
+#ifdef SF22ASWT_DEBUG
+                lastErrorStr = "@ sample " + String(si) + " could not allocate additional " + String(ary_length_8) + " bytes, allocated " + String(allocatedSize*4) + " of " + String(totalSampleDataSizeBytes) + " bytes";
+#endif
                 file.close();
                 FreePrevSampleData();
                 return false;
@@ -220,7 +226,7 @@ namespace SF22ASWT
 
             if (file.seek(inst.samples[si].sample_start) == false) {
                 //lastError = "@ sample " +  String(si) + " could not seek to data location in file";
-                lastError = Error::Errors::SDTA_SMPL_DATA_SEEK;
+                lastError = SF22ASWT::Error::Errors::SDTA_SMPL_DATA_SEEK;
                 lastErrorPosition = file.position();
                 lastReadCount = inst.samples[si].sample_start;
                 file.close();
@@ -229,7 +235,7 @@ namespace SF22ASWT
             }
             if ((lastReadCount = file.readBytes((char*)samples[si].data, length_8)) != length_8) {
                 //lastError = "@ sample " +  String(si) + " could not read sample data from file, wanted:" + length_8 + " but could only read " + lastReadCount;
-                lastError = Error::Errors::SDTA_SMPL_DATA_READ;
+                lastError = SF22ASWT::Error::Errors::SDTA_SMPL_DATA_READ;
                 lastErrorPosition = inst.samples[si].sample_start;
                 file.close();
                 FreePrevSampleData();
@@ -368,7 +374,7 @@ namespace SF22ASWT
     void ReaderBase::DebugPrintBagContents(bag_of_gens &gen)
     {
         DebugPrint("bag contents:\n");
-#ifdef DEBUG
+#ifdef SF22ASWT_DEBUG
         for (int i2=0;i2<gen.count;i2++)
         {
             DebugPrint_Text_Var("  sfGenOper:", (uint16_t)gen.items[i2].sfGenOper);

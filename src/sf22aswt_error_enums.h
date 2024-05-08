@@ -272,6 +272,17 @@ namespace SF22ASWT::Error
     void printError(Errors pe);
 }
 
+namespace SF22ASWT
+{
+    enum class Errors : uint16_t
+    {
+        NONE                    = 0x0000, // no error
+        /** usen when checking for available ram before allocating memory for sampledata */
+        RAM_SIZE_INSUFF          = ERROR(RAM, SIZE, INSUFF),
+        EXTRAM_SIZE_INSUFF       = ERROR(EXTRAM, SIZE, INSUFF),
+    };
+}
+
 namespace SF22ASWT::Error::Test
 {
     extern const Errors ErrorList[];
