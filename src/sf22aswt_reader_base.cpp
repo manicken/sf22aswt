@@ -181,7 +181,7 @@ namespace SF22ASWT
         
         // early check for available ram
         if (samples_useExtMem == false) {
-            if (totalSampleDataSizeBytes > (SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE - samples_usedRam)) {
+            if (totalSampleDataSizeBytes > (SF22ASWT::Samples_Max_Internal_RAM_Cap - samples_usedRam)) {
                 lastError = SF22ASWT::Errors::RAM_SIZE_INSUFF;
                 return false;
             }

@@ -37,10 +37,9 @@
 #define FILE_ERROR_APPEND_SUB(ROOT_TYPE, SUB_TYPE) lastError = (SF22ASWT::Errors)((uint16_t)lastError & (uint16_t)SF22ASWT::Error::ROOT_TYPE::SUB_TYPE);
         
 
-#define SF22ASWT_SAMPLES_MAX_INTERNAL_RAM_USAGE 400000
-
 namespace SF22ASWT
 {
+    int Samples_Max_Internal_RAM_Cap = 400000;
     /**
      * keeping track of all used ram, 
      * have it global as multiple files can be loaded, 
