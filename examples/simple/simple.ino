@@ -28,7 +28,7 @@ void setup()
     usbMIDI.setHandleNoteOn(usbMidi_NoteOn);
     usbMIDI.setHandleNoteOff(usbMidi_NoteOff);
 
-Serial.println("USB serial port initialized!"); // try to see if i can receive this
+    Serial.println("USB serial port initialized!"); // try to see if i can receive this
     if (!SD.begin(BUILTIN_SDCARD)) {
           Serial.print("SD initialization failed!\n");
     }
@@ -37,7 +37,7 @@ Serial.println("USB serial port initialized!"); // try to see if i can receive t
     AudioSynthWavetable::instrument_data *wt_inst_old = wt_inst;
 
     int instrumentIndex = 0;
-    if (sf22aswt.load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
+    if (sf22aswt.Load_instrument_from_file("gm.sf2", instrumentIndex, &wt_inst) == false)
     {
         Serial.println("load_instrument_from_file error!");
     }

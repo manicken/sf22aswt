@@ -5,6 +5,15 @@ namespace SF22ASWT
 {
     extern "C" uint8_t external_psram_size;
     int samples_usedRam = 0;
+#ifdef SF22ASWT_DEBUG
+    String ReaderBase::getLastErrorStr() { return lastErrorStr; }
+#endif
+    SF22ASWT::Errors ReaderBase::getLastError() { return lastError; }
+    uint32_t ReaderBase::getLastErrorPosition() { return lastErrorPosition; }
+    size_t ReaderBase::getLastReadCount() { return lastReadCount; }
+    bool ReaderBase::getLastReadWasOK() { return lastReadWasOK; }
+    int ReaderBase::getTotalSampleDataSizeBytes() { return totalSampleDataSizeBytes; }
+    uint32_t ReaderBase::getFileSize() { return fileSize; }
 
     void ReaderBase::clearErrors()
     {
@@ -16,16 +25,16 @@ namespace SF22ASWT
         lastReadCount = 0;
     }
 
-    void ReaderBase::printSF2ErrorInfo()
+    void ReaderBase::printSF2ErrorInfo(Print &printStream)
     {
-        SF22ASWT::printError(lastError); USerial.print("\n");
+        SF22ASWT::printError(printStream, lastError); printStream.print("\n");
 #ifdef SF22ASWT_DEBUG
-        USerial.println(lastErrorStr);
+        printStream.println(lastErrorStr);
 #endif
-        USerial.print(" @ position: ");
-        USerial.print(lastErrorPosition);
-        USerial.print(", lastReadCount: ");
-        USerial.print(lastReadCount); USerial.print("\n");
+        printStream.print(" @ position: ");
+        printStream.print(lastErrorPosition);
+        printStream.print(", lastReadCount: ");
+        printStream.print(lastReadCount); printStream.print("\n");
     }
 
     bool ReaderBase::ReadStringUsingLeadingSize(File &file, String& string)
@@ -248,7 +257,9 @@ namespace SF22ASWT
             inst.samples[si].sample = (int16_t*)samples[si].data;
             allocatedSize+=ary_length;
         }
-        //USerial.print("Used ram for samples:"); USerial.println(samples_usedRam);
+#ifdef SF22ASWT_DEBUG
+        USerial.print("Used ram for samples:"); USerial.println(samples_usedRam);
+#endif
         file.close();
         return true;
     }

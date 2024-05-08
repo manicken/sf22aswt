@@ -70,6 +70,7 @@ void loop()
     usbMIDI.read();
 }
 
+void PrintFileNotOpenOrLastReadWasNotOK() { USerial.println("file not open or last read was not ok"); }
 
 void processSerialCommand()
 {
@@ -99,7 +100,7 @@ void processSerialCommand()
         long startTime = micros();
         if (sf22aswt.ReadFile(&serialRxBuffer[10]) == false)
         {
-            sf22aswt.printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo(USerial);
             USerialSendAck_KO();
             return;
             // TODO. open and print a part of file contents if possible
@@ -113,8 +114,8 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_info_block", 16) == 0)
     {
-        if (sf22aswt.lastReadWasOK == false) {
-            USerial.println("file not open or last read was not ok");
+        if (sf22aswt.getLastReadWasOK() == false) {
+            PrintFileNotOpenOrLastReadWasNotOK();
             USerialSendAck_KO();
             return;
         }
@@ -129,12 +130,12 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_file_info", 15) == 0)
     {
-        if (sf22aswt.lastReadWasOK == false) {
-            USerial.println("file not open or last read was not ok");
+        if (sf22aswt.getLastReadWasOK() == false) {
+            PrintFileNotOpenOrLastReadWasNotOK();
             USerialSendAck_KO();
             return;
         }
-        USerial.print("\n*** info ***\nfile size: "); USerial.print(sf22aswt.fileSize);
+        USerial.print("\n*** info ***\nfile size: "); USerial.print(sf22aswt.getFileSize());
         USerial.print(", sfbk size: "); USerial.print(sf22aswt.sfbk.size);
         USerial.print(", info size: "); USerial.print(sf22aswt.sfbk.info_size);
         USerial.print(", sdta size:"); USerial.print(sf22aswt.sfbk.sdta.size);
@@ -151,13 +152,13 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "list_instruments", 16) == 0)
     {
-        if (sf22aswt.lastReadWasOK == false) {
-            USerial.println("file not open or last read was not ok");
+        if (sf22aswt.getLastReadWasOK() == false) {
+            PrintFileNotOpenOrLastReadWasNotOK();
             USerialSendAck_KO();
             return;
         }
         long startTime = micros();
-        sf22aswt.printInstrumentListAsJson(USerial);
+        sf22aswt.PrintInstrumentListAsJson(USerial);
         long endTime = micros();
         USerial.print("list instruments took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
@@ -165,13 +166,13 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "list_presets", 12) == 0)
     {
-        if (sf22aswt.lastReadWasOK == false) {
-            USerial.println("file not open or last read was not ok");
+        if (sf22aswt.getLastReadWasOK() == false) {
+            PrintFileNotOpenOrLastReadWasNotOK();
             USerialSendAck_KO();
             return;
         }
         long startTime = micros();
-        sf22aswt.printPresetListAsJson(USerial);
+        sf22aswt.PrintPresetListAsJson(USerial);
         long endTime = micros();
         USerial.print("list presets took: ");
         USerial.print((float)(endTime-startTime)/1000.0f);
@@ -179,8 +180,8 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "load_instrument:", 16) == 0)
     {
-        if (sf22aswt.lastReadWasOK == false) {
-            USerial.println("file not open or last read was not ok");
+        if (sf22aswt.getLastReadWasOK() == false) {
+            PrintFileNotOpenOrLastReadWasNotOK();
             USerialSendAck_KO();
             return;
         }
@@ -193,9 +194,9 @@ void processSerialCommand()
         long startTime = micros();
         
         SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
-        if (sf22aswt.load_instrument_data(index, inst_temp) == false)
+        if (sf22aswt.Load_instrument_data(index, inst_temp) == false)
         {
-            sf22aswt.printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo(USerial);
             USerialSendAck_KO();
             return;
         }
@@ -214,12 +215,12 @@ void processSerialCommand()
         
         if (sf22aswt.ReadSampleDataFromFile(inst_temp) == false)
         {
-            sf22aswt.printSF2ErrorInfo();
+            sf22aswt.printSF2ErrorInfo(USerial);
             USerialSendAck_KO();
             return;
         }
         USerial.print("current instrument sample data size inclusive padding: ");
-        USerial.print(sf22aswt.totalSampleDataSizeBytes);
+        USerial.print(sf22aswt.getTotalSampleDataSizeBytes());
         USerial.println(" bytes");
         
         endTime = micros();
@@ -263,7 +264,7 @@ void processSerialCommand()
         // copy the old instrument_data pointer so we can delete the used data later
         AudioSynthWavetable::instrument_data *wt_inst_old = WaveTableSynth::wt_inst;
         
-        if (sf22aswt.load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &WaveTableSynth::wt_inst) == false)
+        if (sf22aswt.Load_instrument_from_file(&serialRxBuffer[26+6], instrumentIndex, &WaveTableSynth::wt_inst) == false)
         {
             USerial.println("load_first_instrument_from_file error!");
             USerialSendAck_KO();
@@ -328,7 +329,7 @@ void processSerialCommand()
     }
     else if (strncmp(serialRxBuffer, "print_all_errors", 16) == 0)
     {
-        SF22ASWT::Error::Test::ExecTest();
+        SF22ASWT::Error::PrintList(USerial);
         USerialSendAck_OK();
     }
     else if (strncmp(serialRxBuffer, "ping", 4) == 0) // used to auto detect comport

@@ -4,9 +4,6 @@
 #define SF22ASWT_ERROR_ENUMS_H_
 
 #include <Arduino.h>
-#ifndef USerial
-#define USerial SerialUSB
-#endif
 
 // this mode takes 448 bytes of flash
 //#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
@@ -271,18 +268,18 @@ namespace SF22ASWT
 
     #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
 
-    bool printError(const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code);
+    bool printError(Print &printStream, const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code);
     
 #endif
-    void printError(Errors pe);
+    void printError(Print &printStream, Errors pe);
 }
 
-namespace SF22ASWT::Error::Test
+namespace SF22ASWT::Error
 {
     extern const Errors ErrorList[];
     extern int ErrorList_Size;
 
-    void ExecTest();
+    void PrintList(Print &printStream);
 } // namespace SF22ASWT::Error::Test
 
 #endif

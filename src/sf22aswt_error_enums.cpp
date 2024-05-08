@@ -155,57 +155,57 @@ namespace SF22ASWT::Error
 namespace SF22ASWT
 {
 #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
-    bool printError(const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code)
+    bool printError(Print &printStream, const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code)
     {
         for (int i=0;i<size;i++) {
             if (lockupTable[i] == code)
             {
-                USerial.print(strings[i]);
+                printStream.print(strings[i]);
                 return true;
             }
         }
         return false;
     }
 #endif
-    void printError(Errors pe)
+    void printError(Print &printStream, Errors pe)
     {
         uint16_t code = (uint16_t)pe;
 #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
         if (code == 0) {
-            USerial.print("NONE");
+            printStream.print("NONE");
             return;
         }
 #endif
-        USerial.print(code, 16);
+        printStream.print(code, 16);
 #ifndef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
-        USerial.println();
+        printStream.println();
 #endif
 #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
-        USerial.print(" ");
+        printStream.print(" ");
         uint32_t root = code & ERROR_ROOT_LOCATION_NIBBLE_MASK;
         uint32_t sub = code & ERROR_SUB_LOCATION_NIBBLE_MASK;
         uint32_t type = code & ERROR_TYPE_LOCATION_NIBBLE_MASK;
         uint32_t operation = code & ERROR_OPERATION_NIBBLE_MASK;
 
         if (printError(RootLocation_LockupTable, RootLocation_Strings, RootLocation_LockupTable_Size, root))
-            USerial.print("_");
+            printStream.print("_");
         
         // TODO the following should use the different lockup tables for each sub type list
         if (root == ((uint16_t)RootLocation::INFO)) {
             if (printError(INFO_LockupTable, INFO_Strings, INFO_LockupTable_Size, sub))
-                USerial.print("_");
+                printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::SDTA)) {
             if (printError(SDTA_LockupTable, SDTA_Strings, SDTA_LockupTable_Size, sub))
-                USerial.print("_");
+                printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::PDTA)) {
             if (printError(PDTA_LockupTable, PDTA_Strings, PDTA_LockupTable_Size, sub))
-                USerial.print("_");
+                printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::FUNCTION)) {
             if (printError(FUNCTION_LockupTable, FUNCTION_Strings, FUNCTION_LockupTable_Size, sub))
-                USerial.print("_");
+                printStream.print("_");
         }
         if (printError(Type_LockupTable, Type_Strings, Type_LockupTable_Size, type))
-            USerial.print("_");
+            printStream.print("_");
         
         printError(Operation_LockupTable, Operation_Strings, Operation_LockupTable_Size, operation);
 #endif
@@ -213,7 +213,7 @@ namespace SF22ASWT
 }
 
 
-namespace SF22ASWT::Error::Test
+namespace SF22ASWT::Error
 {
     const SF22ASWT::Errors ErrorList[] PROGMEM = {
         Errors::NONE,
@@ -350,15 +350,15 @@ namespace SF22ASWT::Error::Test
     };
     int ErrorList_Size = sizeof(ErrorList) / sizeof(ErrorList[0]);
 
-    void ExecTest()
+    void PrintList(Print &printStream)
     {
 
-        USerial.print("Error count: "); USerial.print(ErrorList_Size-1); USerial.write('\n');
+        printStream.print("Error count: "); printStream.print(ErrorList_Size-1); printStream.write('\n');
         for (int i=0;i<ErrorList_Size;i++)
         {
-            printError((SF22ASWT::Errors)ErrorList[i]);
-            //USerial.println();
-            USerial.write('\n');
+            printError(printStream, (SF22ASWT::Errors)ErrorList[i]);
+            //printStream.println();
+            printStream.write('\n');
         
         }
         //Errors pe = Errors::LISTTYPE_FOURCC_INVALID;

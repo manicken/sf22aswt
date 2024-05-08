@@ -8,7 +8,7 @@
 #include "sf22aswt_helpers.h"
 
 #ifndef USerial
-#define USerial SerialUSB1
+#define USerial SerialUSB
 #endif
 
 //#define SF22ASWT_DEBUG
@@ -52,14 +52,36 @@ namespace SF22ASWT
      * and contains the 'common' stuff that is used on both lazy reader and 'normal' reader
     */
     class ReaderBase {
-      protected: 
+      public:
+        SF22ASWT::Errors getLastError();
+#ifdef SF22ASWT_DEBUG
+        String getLastErrorStr();
+#endif
+        uint32_t getLastErrorPosition();
+        size_t getLastReadCount();
+        bool getLastReadWasOK();
+        int getTotalSampleDataSizeBytes();
+        uint32_t getFileSize();
+        //#define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
+
+        void printSF2ErrorInfo(Print &print);
+        bool ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam = false);
+
+      protected:
         ReaderBase() {}
         ~ReaderBase() {}
-      public:
+
+        void clearErrors();
+#ifdef SF22ASWT_DEBUG
+        String lastErrorStr; // used to provide additional info if needed
+#endif
+        SF22ASWT::Errors lastError = SF22ASWT::Errors::NONE;
+        uint32_t lastErrorPosition;
+        size_t lastReadCount = 0; // used to track errors
+
         uint32_t fileSize;
         String filePath;
         
-
         bool lastReadWasOK = false;
 
         // TODO make all samples load into a single array for easier allocation / deallocation
@@ -69,23 +91,10 @@ namespace SF22ASWT
         int sample_count = 0;
         int totalSampleDataSizeBytes = 0;
 
-#ifdef SF22ASWT_DEBUG
-        String lastErrorStr; // used to provide additional info if needed
-#endif
-        SF22ASWT::Errors lastError = SF22ASWT::Errors::NONE;
-        uint32_t lastErrorPosition;
-        size_t lastReadCount = 0; // used to track errors
-        void clearErrors();
-        //#define FILE_ERROR(msg) {lastError=msg; lastErrorPosition = file.position() - lastReadCount; file.close(); return false;}
-
-        void printSF2ErrorInfo();
-
         bool ReadStringUsingLeadingSize(File &file, String& string);
-        
         bool verifyFourCC(const char* fourCC);
 
         bool readInfoBlock(File &file, INFO &info);
-
         /// <summary>
         /// reads data offset pointers and sizes of sample data, not the actual data
         /// as the data is read from file on demand
@@ -95,8 +104,6 @@ namespace SF22ASWT
         bool read_sdta_block(File &file, sdta_rec_lazy &sdta);
 
         void FreePrevSampleData();
-
-        bool ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam = false);
 
 #pragma region gen_get_functions
         bool get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount);

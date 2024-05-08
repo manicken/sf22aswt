@@ -1,6 +1,10 @@
 
 #include "sf22aswt_reader_lazy.h"
 
+#ifndef USerial
+#define USerial Serial
+#endif
+
 namespace SF22ASWT
 {
     bool ReaderLazy::ReadFile(const char * filePath)
@@ -77,7 +81,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::printInstrumentListAsJson(Stream &stream)
+    bool ReaderLazy::PrintInstrumentListAsJson(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -87,22 +91,22 @@ namespace SF22ASWT
         if (file.seek(sfbk.pdta.inst_position) == false) FILE_ERROR(PDTA_INST_DATA_SEEK)
 
         SF22ASWT::inst_rec inst;
-        stream.print("json:{\"instruments\":[");
+        printStream.print("json:{\"instruments\":[");
         for (uint32_t i = 0; i < sfbk.pdta.inst_count - 1; i++) // -1 the last is allways a EOI
         {
             file.read(&inst, SF22ASWT::inst_rec::Size);
-            stream.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(stream, inst.achInstName, 20, '\0');
-            stream.print("\",\"ndx\":");
-            stream.print(inst.wInstBagNdx);
-            stream.print("},");
+            printStream.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(printStream, inst.achInstName, 20, '\0');
+            printStream.print("\",\"ndx\":");
+            printStream.print(inst.wInstBagNdx);
+            printStream.print("},");
         }
         file.close();
-        stream.println("]}");
+        printStream.println("]}");
         return true;
     }
 
-    bool ReaderLazy::printPresetListAsJson(Stream &stream)
+    bool ReaderLazy::PrintPresetListAsJson(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -113,27 +117,27 @@ namespace SF22ASWT
         
         SF22ASWT::phdr_rec phdr;
 
-        stream.print("json:{\"presets\":[");
+        printStream.print("json:{\"presets\":[");
 
         for (uint32_t i = 0; i < sfbk.pdta.phdr_count - 1; i++) // -1 the last is allways a EOP
         {
             file.read(&phdr, SF22ASWT::phdr_rec::Size);
-            stream.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(stream, phdr.achPresetName, 20, '\0');
-            stream.print("\",\"bank\":");
-            stream.print(phdr.wBank);
-            stream.print(",\"preset\":");
-            stream.print(phdr.wPreset);
-            stream.print(",\"bagNdx\":");
-            stream.print(phdr.wPresetBagNdx);
-            stream.print("},");
+            printStream.print("{\"name\":\"");
+            Helpers::printRawBytesUntil(printStream, phdr.achPresetName, 20, '\0');
+            printStream.print("\",\"bank\":");
+            printStream.print(phdr.wBank);
+            printStream.print(",\"preset\":");
+            printStream.print(phdr.wPreset);
+            printStream.print(",\"bagNdx\":");
+            printStream.print(phdr.wPresetBagNdx);
+            printStream.print("},");
         }
         file.close();
-        stream.println("]}");
+        printStream.println("]}");
         return true;
     }
 
-    bool ReaderLazy::load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst)
+    bool ReaderLazy::Load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -268,27 +272,27 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id)
+    bool ReaderLazy::Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id)
     {
         
         if (ReadFile(filePath) == false)
         {
             USerial.println("Read file error:");
-            printSF2ErrorInfo();
+            printSF2ErrorInfo(USerial);
             return false;
         }
         SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
 
-        if (load_instrument_data(instrumentIndex, inst_temp) == false)
+        if (Load_instrument_data(instrumentIndex, inst_temp) == false)
         {
             USerial.println("load_instrument_data error:");
-            printSF2ErrorInfo();
+            printSF2ErrorInfo(USerial);
             return false;
         }
         if (ReadSampleDataFromFile(inst_temp) == false)
         {
             USerial.println("ReadSampleDataFromFile error:");
-            printSF2ErrorInfo();
+            printSF2ErrorInfo(USerial);
             return false;
         }
         AudioSynthWavetable::instrument_data* new_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
@@ -302,7 +306,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::PrintInfoBlock(Print &stream)
+    bool ReaderLazy::PrintInfoBlock(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -315,7 +319,7 @@ namespace SF22ASWT
         
         file.close();
         info.size = sfbk.info_size;
-        info.Print(stream);
+        info.Print(printStream);
         return true;
     }
 
