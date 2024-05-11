@@ -39,7 +39,7 @@
 
 namespace SF22ASWT
 {
-    int Samples_Max_Internal_RAM_Cap = 400000;
+    extern int Samples_Max_Internal_RAM_Cap;
     /**
      * keeping track of all used ram, 
      * have it global as multiple files can be loaded, 

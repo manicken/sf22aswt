@@ -16,6 +16,7 @@ namespace SF22ASWT
       public:
         sfbk_rec_lazy sfbk;
 
+        bool CloneInto(ReaderLazy &other);
         /** reads and verifies the sf2 file,
          *  note. this is lazy read 
          *  and only the file data position for
@@ -30,9 +31,16 @@ namespace SF22ASWT
         */
         bool Load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst);
         /**
-         * this is mostly intended as a demo or to quickly use this library
+         * this function is like Load_instrument_data but also loads the sample data 
+         * the output is AudioSynthWavetable::instrument_data
+         * note that errPrintStream is default to Serial which can be changed into any Print Stream
         */
-        bool Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id);
+        bool Load_instrument(int instrumentIndex, AudioSynthWavetable::instrument_data*& aswt_id, Print &errPrintStream = Serial);
+        /**
+         * this is mostly intended as a demo or to quickly use this library
+         * note that errPrintStream is default to Serial which can be changed into any Print Stream
+        */
+        bool Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id, Print &errPrintStream = Serial);
         bool PrintInfoBlock(Print &printStream);
 
   private:

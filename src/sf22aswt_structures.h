@@ -56,16 +56,16 @@ namespace SF22ASWT
         float MODULATION_PITCH_COEFFICIENT_SECOND;
         int32_t MODULATION_AMPLITUDE_INITIAL_GAIN;
         int32_t MODULATION_AMPLITUDE_SECOND_GAIN;
-
-        
     };
+
     struct instrument_data {
         uint8_t sample_count;
         uint8_t* sample_note_ranges;
         sample_header* samples;
     };
+
     struct sample_header_temp { // rename it to sample_header_temp instead of sample_data_temp
-        //bool invalid;
+
         // SAMPLE VALUES
         /** used to get final sample data from file,
          *  and is the direct location in the file to get the sample data */
@@ -73,7 +73,6 @@ namespace SF22ASWT
         /** pointer to sample data when loaded into ram*/
         const int16_t* sample;
         
-
         bool LOOP;
         int SAMPLE_NOTE;
         int CENTS_OFFSET;
@@ -106,95 +105,16 @@ namespace SF22ASWT
         float MOD_AMP_INIT_GAIN;
         float MOD_AMP_SCND_GAIN;
 
-        String ToString()
-        {
-          String ret = "";
-          ret.append("Sample Start:"); ret.append(sample_start);
-          ret.append("\n, LOOP:"); ret.append(LOOP);
-          ret.append("\n, SAMPLE_NOTE:"); ret.append(SAMPLE_NOTE);
-          ret.append("\n, CENTS_OFFSET:"); ret.append(CENTS_OFFSET);
-          ret.append("\n, LENGTH:"); ret.append(LENGTH);
-          ret.append("\n, LENGTH_BITS:"); ret.append(LENGTH_BITS);
-          ret.append("\n, SAMPLE_RATE:"); ret.append(SAMPLE_RATE);
-          ret.append("\n, LOOP_START:"); ret.append(LOOP_START);
-          ret.append("\n, LOOP_END:"); ret.append(LOOP_END);
-          ret.append("\n, INIT_ATTENUATION:"); ret.append(INIT_ATTENUATION);
-
-          ret.append("\n, DELAY_ENV:"); ret.append(DELAY_ENV);
-          ret.append("\n, ATTACK_ENV:"); ret.append(ATTACK_ENV);
-          ret.append("\n, HOLD_ENV:"); ret.append(HOLD_ENV);
-          ret.append("\n, DECAY_ENV:"); ret.append(DECAY_ENV);
-          ret.append("\n, RELEASE_ENV:"); ret.append(RELEASE_ENV); 
-          ret.append("\n, SUSTAIN_FRAC:"); ret.append(SUSTAIN_FRAC);
-
-          ret.append("\n, VIB_DELAY_ENV:"); ret.append(VIB_DELAY_ENV);
-          ret.append("\n, VIB_INC_ENV:"); ret.append(VIB_INC_ENV);
-          ret.append("\n, VIB_PITCH_INIT:"); ret.append(VIB_PITCH_INIT);
-          ret.append("\n, VIB_PITCH_SCND:"); ret.append(VIB_PITCH_SCND);
-
-          ret.append("\n, MOD_DELAY_ENV:"); ret.append(MOD_DELAY_ENV);
-          ret.append("\n, MOD_INC_ENV:"); ret.append(MOD_INC_ENV);
-          ret.append("\n, MOD_PITCH_INIT:"); ret.append(MOD_PITCH_INIT);
-          ret.append("\n, MOD_PITCH_SCND:"); ret.append(MOD_PITCH_SCND);
-          ret.append("\n, MOD_AMP_INIT_GAIN:"); ret.append(MOD_AMP_INIT_GAIN);
-          ret.append("\n, MOD_AMP_SCND_GAIN:"); ret.append(MOD_AMP_SCND_GAIN);
-          return ret;
-        }
-/*
-        sample_header toFinal()
-        {
-            return 
-            {
-                (int16_t*)sample, // sample data pointer, this will be reset after this function call as the data for the sample need to be loaded and handled outside this scope
-                LOOP, // LOOP
-                LENGTH_BITS, // LENGTH_BITS
-                (1 << (32 - LENGTH_BITS)) * WAVETABLE_CENTS_SHIFT(CENTS_OFFSET) * SAMPLE_RATE / WAVETABLE_NOTE_TO_FREQUENCY(SAMPLE_NOTE) / AUDIO_SAMPLE_RATE_EXACT + 0.5f, // PER_HERTZ_PHASE_INCREMENT
-                ((uint32_t)LENGTH - 1) << (32 - LENGTH_BITS), // MAX_PHASE
-                ((uint32_t)LOOP_END - 1) << (32 - LENGTH_BITS), // LOOP_PHASE_END
-                (((uint32_t)LOOP_END - 1) << (32 - LENGTH_BITS)) - (((uint32_t)LOOP_START - 1) << (32 - LENGTH_BITS)), // LOOP_PHASE_LENGTH
-                uint16_t(UINT16_MAX * WAVETABLE_DECIBEL_SHIFT(INIT_ATTENUATION)), // INITIAL_ATTENUATION_SCALAR
-                // VOLUME ENVELOPE VALUES
-                uint32_t(DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // DELAY_COUNT
-                uint32_t(ATTACK_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // ATTACK_COUNT
-                uint32_t(HOLD_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // HOLD_COUNT
-                uint32_t(DECAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // DECAY_COUNT
-                uint32_t(RELEASE_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / AudioSynthWavetable::ENVELOPE_PERIOD + 0.5), // RELEASE_COUNT
-                int32_t((1.0 - WAVETABLE_DECIBEL_SHIFT(SUSTAIN_FRAC)) * AudioSynthWavetable::UNITY_GAIN), // SUSTAIN_MULT
-                // VIRBRATO VALUES
-                uint32_t(VIB_DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / (2 * AudioSynthWavetable::LFO_PERIOD)), // VIBRATO_DELAY
-                uint32_t(VIB_INC_ENV * AudioSynthWavetable::LFO_PERIOD * (UINT32_MAX / AUDIO_SAMPLE_RATE_EXACT)), // VIBRATO_INCREMENT
-                (WAVETABLE_CENTS_SHIFT(VIB_PITCH_INIT) - 1.0) * 4, // VIBRATO_PITCH_COEFFICIENT_INITIAL
-                (1.0 - WAVETABLE_CENTS_SHIFT(VIB_PITCH_SCND)) * 4, // VIBRATO_COEFFICIENT_SECONDARY
-                // MODULATION VALUES
-                uint32_t(MOD_DELAY_ENV * AudioSynthWavetable::SAMPLES_PER_MSEC / (2 * AudioSynthWavetable::LFO_PERIOD)), // MODULATION_DELAY
-                uint32_t(MOD_INC_ENV * AudioSynthWavetable::LFO_PERIOD * (UINT32_MAX / AUDIO_SAMPLE_RATE_EXACT)), // MODULATION_INCREMENT
-                (WAVETABLE_CENTS_SHIFT(MOD_PITCH_INIT) - 1.0) * 4, // MODULATION_PITCH_COEFFICIENT_INITIAL
-                (1.0 - WAVETABLE_CENTS_SHIFT(MOD_PITCH_SCND)) * 4, // MODULATION_PITCH_COEFFICIENT_SECOND
-                int32_t(UINT16_MAX * (WAVETABLE_DECIBEL_SHIFT(MOD_AMP_INIT_GAIN) - 1.0)) * 4, // MODULATION_AMPLITUDE_INITIAL_GAIN
-                int32_t(UINT16_MAX * (1.0 - WAVETABLE_DECIBEL_SHIFT(MOD_AMP_SCND_GAIN))) * 4, // MODULATION_AMPLITUDE_FINAL_GAIN
-            };
-        }*/
+        void PrintTo(Print &stream);
     };
+    
     struct instrument_data_temp {
         //String filePath; //use in a future version of SF reader
         uint8_t sample_count;
         uint8_t* sample_note_ranges;
         sample_header_temp* samples;
 
-        String ToString()
-        {
-          String str = "";
-          str.append("Sample Count: "); str.append(sample_count);
-          str.append("\n");
-          for (int i = 0;i<sample_count;i++)
-          {
-              str.append("Sample: "); str.append(i);
-              str.append(", Range max:"); str.append(sample_note_ranges[i]);
-              str.append("\n");
-              str.append(samples[i].ToString());
-          }
-          return str;
-        }
+        void PrintTo(Print &stream);
 
         ~instrument_data_temp() {
           delete[] samples;
@@ -204,22 +124,12 @@ namespace SF22ASWT
         }
     };
 
-  
-
     class sfVersionTag
     {
       public:
         uint16_t major;
         uint16_t minor;
-      String ToString()
-      {
-        String str;
-        str.append(major);
-        str.append(".");
-        if (minor < 10) str.append("0");
-        str.append(minor);
-        return str;
-      }
+        void PrintTo(Print &stream);
     };
 
     class INFO
@@ -255,49 +165,13 @@ namespace SF22ASWT
         /** The tool used to create or edit the SoundFont */
         String ISFT = "";
 
-        /*String ToString()
-        {
-            String ret = "\n";
-            ret += "*** Info *** ( size: ";
-            ret.append(size);
-            ret += " )\n\n";
-            ret += "Soundfont version: " + ifil.ToString() + "\n";
-            ret += "Name: " + INAM + "\n";
-            ret += "SoundEngine: " + isng + "\n";
-            ret += "ROM: " + irom + "\n";
-            ret += "ROM ver: " + iver.ToString() + "\n";
-            ret += "Date: " + ICRD + "\n";
-            ret += "Credits: " + IENG + "\n";
-            ret += "Product: " + IPRD + "\n";
-            ret += "Copyright: " + ICOP + "\n";
-            ret += "Comment: " + ICMT + "\n";
-            ret += "Tools: " + ISFT + "\n";
-            return ret;
-        }*/
-        void Print(Print &stream)
-        {
-            stream.println();
-            stream.print("*** Info *** ( size: ");
-            stream.print(size);
-            stream.println(" )\n");
-            stream.print("Soundfont version: "); stream.println(ifil.ToString());
-            stream.print("Name: "); stream.println(INAM);
-            stream.print("SoundEngine: "); stream.println(isng);
-            stream.print("ROM: "); stream.println(irom);
-            stream.print("ROM ver: "); stream.println(iver.ToString());
-            stream.print("Date: "); stream.println(ICRD);
-            stream.print("Credits: "); stream.println(IENG);
-            stream.print("Product: "); stream.println(IPRD);
-            stream.print("Copyright: "); stream.println(ICOP);
-            stream.print("Comment: "); stream.println(ICMT);
-            stream.print("Tools: "); stream.println(ISFT);
-        }
+        void PrintTo(Print &stream);
     };
 
     class phdr_rec
     {
       public:
-      static const uint32_t Size = 38;
+        static const uint32_t Size = 38;
         char achPresetName[20];
         uint16_t wPreset;
         uint16_t wBank;
@@ -313,7 +187,7 @@ namespace SF22ASWT
     class bag_rec
     {
       public:
-      static const uint32_t Size = 4;
+        static const uint32_t Size = 4;
         uint16_t wGenNdx;
         uint16_t wModNdx;
     };
@@ -340,7 +214,7 @@ namespace SF22ASWT
     class mod_rec
     {
       public:
-      static const uint32_t Size = 10;
+        static const uint32_t Size = 10;
         SFModulator sfModSrcOper;
         SFGenerator sfModDestOper;
         int16_t     modAmount;
@@ -364,19 +238,19 @@ namespace SF22ASWT
         
         double cents()
         {
-          return std::pow(2, static_cast<double>(Amount) / 1200.0);
+            return std::pow(2, static_cast<double>(Amount) / 1200.0);
         }
         double bells()
         {
-          return static_cast<double>(Amount) / 100.0;
+            return static_cast<double>(Amount) / 100.0;
         }
         double centibels()
         {
-          return static_cast<double>(Amount) / 10.0;
+            return static_cast<double>(Amount) / 10.0;
         }
         int coarse_offset()
         {
-          return 32768 * Amount;
+            return 32768 * Amount;
         }
         double absolute_cents()
         {
@@ -388,13 +262,13 @@ namespace SF22ASWT
         }
         uint8_t rangeLow()
         {
-          if (LowByte < HighByte) return LowByte;
-          else return HighByte;
+            if (LowByte < HighByte) return LowByte;
+            else return HighByte;
         }
         uint8_t rangeHigh()
         {
-          if (LowByte < HighByte) return HighByte;
-          else return LowByte;
+            if (LowByte < HighByte) return HighByte;
+            else return LowByte;
         }
     };
 
@@ -404,7 +278,7 @@ namespace SF22ASWT
     class gen_rec
     {
       public:
-      static const uint32_t Size = 4;
+        static const uint32_t Size = 4;
         SFGenerator sfGenOper;
         SF2GeneratorAmount genAmount;
     };
@@ -413,24 +287,24 @@ namespace SF22ASWT
     {
       public:
         ~bag_of_gens() {
-          if (items != nullptr)
-          {
-            delete[] items;
-          }
+            if (items != nullptr)
+            {
+                delete[] items;
+            }
         }
         /** item count */
         uint16_t count = 0;
         gen_rec* items;
         gen_rec lastItem()
         {
-          return items[count-1];
+            return items[count-1];
         }
     };
 
     class inst_rec
     {
       public:
-      static const uint32_t Size = 22;
+        static const uint32_t Size = 22;
         char achInstName[20];
         uint16_t wInstBagNdx;
     };
@@ -438,7 +312,7 @@ namespace SF22ASWT
     class shdr_rec
     {
       public:
-      static const uint32_t Size = 46;
+        static const uint32_t Size = 46;
         char achSampleName[20];
         uint32_t dwStart;
         uint32_t dwEnd;
@@ -454,6 +328,8 @@ namespace SF22ASWT
     class pdta_rec
     {
       public:
+        pdta_rec();
+
         uint32_t size = 0; // comes from parent LIST, used mostly for debug
         /** The Preset Headers */
         phdr_rec *phdr;
@@ -482,18 +358,6 @@ namespace SF22ASWT
         /** The Sample Headers */
         shdr_rec *shdr;
         uint32_t shdr_count = 0;
-        pdta_rec()
-        {
-            phdr = new phdr_rec[0];
-            pbag = new bag_rec[0];
-            pmod = new mod_rec[0];
-            pgen = new gen_rec[0];
-            inst = new inst_rec[0];
-            ibag = new bag_rec[0];
-            imod = new mod_rec[0];
-            igen = new gen_rec[0];
-            shdr = new shdr_rec[0];            
-        }
     };
 
     class pdta_rec_lazy
@@ -528,7 +392,7 @@ namespace SF22ASWT
         uint32_t shdr_position = 0;
         uint32_t shdr_count = 0;
 
-
+        void CloneInto(pdta_rec_lazy &other);
     };
 
     class smpl_rec
@@ -538,6 +402,8 @@ namespace SF22ASWT
         uint32_t position = 0;
         /** smpl data size */
         uint32_t size = 0;
+
+        void CloneInto(smpl_rec &other);
     };
 
     class sdta_rec_lazy
@@ -546,6 +412,8 @@ namespace SF22ASWT
         uint32_t size; // comes from parent LIST
         smpl_rec smpl;
         smpl_rec sm24;
+
+        void CloneInto(sdta_rec_lazy &other);
     };
 
     class sfbk_rec_lazy
@@ -557,6 +425,8 @@ namespace SF22ASWT
         /** the sample data block (allways a lazy load structure) */
         sdta_rec_lazy sdta;
         pdta_rec_lazy pdta;
+
+        void CloneInto(sfbk_rec_lazy &other);
     };
 
     class sfbk_rec

@@ -7,6 +7,15 @@
 
 namespace SF22ASWT
 {
+    bool ReaderLazy::CloneInto(ReaderLazy &other)
+    {
+        if (lastReadWasOK == false) return false;
+        other.lastReadWasOK = true;
+        other.fileSize = fileSize;
+        other.filePath = filePath;
+        sfbk.CloneInto(other.sfbk);
+        return true;
+    }
     bool ReaderLazy::ReadFile(const char * filePath)
     {
         lastReadWasOK = false;
@@ -272,37 +281,63 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id)
+    bool ReaderLazy::Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id, Print &errPrintStream)
     {
         
         if (ReadFile(filePath) == false)
         {
-            USerial.println("Read file error:");
-            printSF2ErrorInfo(USerial);
+            errPrintStream.println("Read file error:");
+            printSF2ErrorInfo(errPrintStream);
             return false;
         }
         SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
 
         if (Load_instrument_data(instrumentIndex, inst_temp) == false)
         {
-            USerial.println("load_instrument_data error:");
-            printSF2ErrorInfo(USerial);
+            errPrintStream.println("load_instrument_data error:");
+            printSF2ErrorInfo(errPrintStream);
             return false;
         }
         if (ReadSampleDataFromFile(inst_temp) == false)
         {
-            USerial.println("ReadSampleDataFromFile error:");
-            printSF2ErrorInfo(USerial);
+            errPrintStream.println("ReadSampleDataFromFile error:");
+            printSF2ErrorInfo(errPrintStream);
             return false;
         }
         AudioSynthWavetable::instrument_data* new_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
         if (new_inst == nullptr) // failsafe
         {
-            USerial.println("convert to AudioSynthWavetable::instrument_data error!");
+            errPrintStream.println("convert to AudioSynthWavetable::instrument_data error!");
             return false;
         }
         
         *aswt_id = new_inst;
+        return true;
+    }
+
+    bool ReaderLazy::Load_instrument(int instrumentIndex, AudioSynthWavetable::instrument_data*& aswt_id, Print &errPrintStream)
+    {
+        SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
+
+        if (Load_instrument_data(instrumentIndex, inst_temp) == false)
+        {
+            errPrintStream.println("load_instrument_data error:");
+            printSF2ErrorInfo(errPrintStream);
+            return false;
+        }
+        if (ReadSampleDataFromFile(inst_temp) == false)
+        {
+            errPrintStream.println("ReadSampleDataFromFile error:");
+            printSF2ErrorInfo(errPrintStream);
+            return false;
+        }
+        AudioSynthWavetable::instrument_data* new_inst = new AudioSynthWavetable::instrument_data(SF22ASWT::converter::to_AudioSynthWavetable_instrument_data(inst_temp));
+        if (new_inst == nullptr) // failsafe
+        {
+            errPrintStream.println("convert to AudioSynthWavetable::instrument_data error!");
+            return false;
+        }
+        aswt_id = new_inst;
         return true;
     }
 
@@ -319,7 +354,7 @@ namespace SF22ASWT
         
         file.close();
         info.size = sfbk.info_size;
-        info.Print(printStream);
+        info.PrintTo(printStream);
         return true;
     }
 

@@ -3,6 +3,8 @@
 
 namespace SF22ASWT
 {
+    int Samples_Max_Internal_RAM_Cap = 400000;
+
     extern "C" uint8_t external_psram_size;
     int samples_usedRam = 0;
 #ifdef SF22ASWT_DEBUG
