@@ -266,7 +266,7 @@ namespace SF22ASWT
         return true;
     }
 
-#pragma region gen_get
+// #pragma region gen_get
     bool ReaderBase::get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
     {
         bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;
@@ -387,13 +387,13 @@ namespace SF22ASWT
     void ReaderBase::DebugPrintBagContents(bag_of_gens &gen)
     {
         DebugPrint("bag contents:\n");
-#ifdef SF22ASWT_DEBUG
+ #ifdef SF22ASWT_DEBUG
         for (int i2=0;i2<gen.count;i2++)
         {
             DebugPrint_Text_Var("  sfGenOper:", (uint16_t)gen.items[i2].sfGenOper);
             DebugPrintln_Text_Var(", value:", gen.items[i2].genAmount.UAmount);
         }
-#endif
+ #endif
     }
-#pragma endregion
+// #pragma endregion
 }

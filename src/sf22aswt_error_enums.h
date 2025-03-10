@@ -6,7 +6,7 @@
 #include <Arduino.h>
 
 // this mode takes 448 bytes of flash
-//#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
+#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
 
 
 namespace SF22ASWT::Error

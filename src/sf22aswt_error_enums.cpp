@@ -154,6 +154,7 @@ namespace SF22ASWT::Error
 
 namespace SF22ASWT
 {
+    using namespace SF22ASWT::Error;
 #ifdef SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
     bool printError(Print &printStream, const uint16_t *lockupTable, const char * const *strings, int size, uint32_t code)
     {
@@ -187,27 +188,27 @@ namespace SF22ASWT
         uint32_t type = code & ERROR_TYPE_LOCATION_NIBBLE_MASK;
         uint32_t operation = code & ERROR_OPERATION_NIBBLE_MASK;
 
-        if (printError(RootLocation_LockupTable, RootLocation_Strings, RootLocation_LockupTable_Size, root))
+        if (printError(printStream,RootLocation_LockupTable, RootLocation_Strings, RootLocation_LockupTable_Size, root))
             printStream.print("_");
         
         // TODO the following should use the different lockup tables for each sub type list
         if (root == ((uint16_t)RootLocation::INFO)) {
-            if (printError(INFO_LockupTable, INFO_Strings, INFO_LockupTable_Size, sub))
+            if (printError(printStream,INFO_LockupTable, INFO_Strings, INFO_LockupTable_Size, sub))
                 printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::SDTA)) {
-            if (printError(SDTA_LockupTable, SDTA_Strings, SDTA_LockupTable_Size, sub))
+            if (printError(printStream,SDTA_LockupTable, SDTA_Strings, SDTA_LockupTable_Size, sub))
                 printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::PDTA)) {
-            if (printError(PDTA_LockupTable, PDTA_Strings, PDTA_LockupTable_Size, sub))
+            if (printError(printStream,PDTA_LockupTable, PDTA_Strings, PDTA_LockupTable_Size, sub))
                 printStream.print("_");
         } else if (root == ((uint16_t)RootLocation::FUNCTION)) {
-            if (printError(FUNCTION_LockupTable, FUNCTION_Strings, FUNCTION_LockupTable_Size, sub))
+            if (printError(printStream,FUNCTION_LockupTable, FUNCTION_Strings, FUNCTION_LockupTable_Size, sub))
                 printStream.print("_");
         }
-        if (printError(Type_LockupTable, Type_Strings, Type_LockupTable_Size, type))
+        if (printError(printStream,Type_LockupTable, Type_Strings, Type_LockupTable_Size, type))
             printStream.print("_");
         
-        printError(Operation_LockupTable, Operation_Strings, Operation_LockupTable_Size, operation);
+        printError(printStream,Operation_LockupTable, Operation_Strings, Operation_LockupTable_Size, operation);
 #endif
     }
 }
