@@ -4,10 +4,7 @@
 #define SF22ASWT_ERROR_ENUMS_H_
 
 #include <Arduino.h>
-
-// this mode takes 448 bytes of flash
-#define SF22ASWT_PRINT_ERROR_CODE_AS_TEXT
-
+#include "sf22aswt_settings.h"
 
 namespace SF22ASWT::Error
 {

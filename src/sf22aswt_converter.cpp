@@ -2,7 +2,7 @@
 
 namespace SF22ASWT::converter
 {
-    AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF22ASWT::instrument_data_temp &data)
+    CODE_LOCATION AudioSynthWavetable::instrument_data to_AudioSynthWavetable_instrument_data(SF22ASWT::instrument_data_temp &data)
     {
         // must use a second struct to contain the data
         // as AudioSynthWavetable::sample_data members are const
@@ -26,7 +26,7 @@ namespace SF22ASWT::converter
         };
     }
 
-    SF22ASWT::sample_header toFinal(SF22ASWT::sample_header_temp &sd)
+    CODE_LOCATION SF22ASWT::sample_header toFinal(SF22ASWT::sample_header_temp &sd)
     {
         return 
         {

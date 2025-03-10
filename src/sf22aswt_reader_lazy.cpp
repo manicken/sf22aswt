@@ -7,7 +7,7 @@
 
 namespace SF22ASWT
 {
-    bool ReaderLazy::CloneInto(ReaderLazy &other)
+    CODE_LOCATION bool ReaderLazy::CloneInto(ReaderLazy &other)
     {
         if (lastReadWasOK == false) return false;
         other.lastReadWasOK = true;
@@ -16,7 +16,8 @@ namespace SF22ASWT
         sfbk.CloneInto(other.sfbk);
         return true;
     }
-    bool ReaderLazy::ReadFile(const char * filePath)
+
+    CODE_LOCATION bool ReaderLazy::ReadFile(const char * filePath)
     {
         lastReadWasOK = false;
         clearErrors();
@@ -90,7 +91,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::PrintInstrumentListAsJson(Print &printStream)
+    CODE_LOCATION bool ReaderLazy::PrintInstrumentListAsJson(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -115,7 +116,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::PrintPresetListAsJson(Print &printStream)
+    CODE_LOCATION bool ReaderLazy::PrintPresetListAsJson(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -146,7 +147,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::Load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst)
+    CODE_LOCATION bool ReaderLazy::Load_instrument_data(uint index, SF22ASWT::instrument_data_temp &inst)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -245,7 +246,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::fillBagsOfGens(File &file, bag_of_gens* bags, int ibag_startIndex, int ibag_count)
+    CODE_LOCATION bool ReaderLazy::fillBagsOfGens(File &file, bag_of_gens* bags, int ibag_startIndex, int ibag_count)
     {
         uint32_t seekPos = sfbk.pdta.ibag_position + bag_rec::Size*ibag_startIndex;
         if (file.seek(seekPos) == false) FILE_SEEK_ERROR(PDTA_IBAG_DATA_SEEK, seekPos) //seek error to ibags
@@ -281,7 +282,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id, Print &errPrintStream)
+    CODE_LOCATION bool ReaderLazy::Load_instrument_from_file(const char * filePath, int instrumentIndex, AudioSynthWavetable::instrument_data **aswt_id, Print &errPrintStream)
     {
         
         if (ReadFile(filePath) == false)
@@ -315,7 +316,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::Load_instrument(int instrumentIndex, AudioSynthWavetable::instrument_data*& aswt_id, Print &errPrintStream)
+    CODE_LOCATION bool ReaderLazy::Load_instrument(int instrumentIndex, AudioSynthWavetable::instrument_data*& aswt_id, Print &errPrintStream)
     {
         SF22ASWT::instrument_data_temp inst_temp = {0,0,nullptr};
 
@@ -341,7 +342,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::PrintInfoBlock(Print &printStream)
+    CODE_LOCATION bool ReaderLazy::PrintInfoBlock(Print &printStream)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -358,7 +359,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderLazy::read_pdta_block(File &file, pdta_rec_lazy &pdta)
+    CODE_LOCATION bool ReaderLazy::read_pdta_block(File &file, pdta_rec_lazy &pdta)
     {
         char fourCC[4];
         uint32_t size = 0;

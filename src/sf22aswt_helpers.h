@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-
+#include "sf22aswt_settings.h"
 
 
 namespace Helpers

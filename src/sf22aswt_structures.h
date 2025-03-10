@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "sf22aswt_enums.h"
+#include "sf22aswt_settings.h"
 
 
 /**

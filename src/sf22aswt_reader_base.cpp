@@ -17,7 +17,7 @@ namespace SF22ASWT
     int ReaderBase::getTotalSampleDataSizeBytes() { return totalSampleDataSizeBytes; }
     uint32_t ReaderBase::getFileSize() { return fileSize; }
 
-    void ReaderBase::clearErrors()
+    CODE_LOCATION void ReaderBase::clearErrors()
     {
 #ifdef SF22ASWT_DEBUG
         lastErrorStr = "";
@@ -27,7 +27,7 @@ namespace SF22ASWT
         lastReadCount = 0;
     }
 
-    void ReaderBase::printSF2ErrorInfo(Print &printStream)
+    CODE_LOCATION void ReaderBase::printSF2ErrorInfo(Print &printStream)
     {
         SF22ASWT::printError(printStream, lastError); printStream.print("\n");
 #ifdef SF22ASWT_DEBUG
@@ -39,7 +39,7 @@ namespace SF22ASWT
         printStream.print(lastReadCount); printStream.print("\n");
     }
 
-    bool ReaderBase::ReadStringUsingLeadingSize(File &file, String& string)
+    CODE_LOCATION bool ReaderBase::ReadStringUsingLeadingSize(File &file, String& string)
     {
         uint32_t size = 0;
         if ((lastReadCount = file.read(&size, 4)) != 4) FILE_ERROR(INFO_STRING_SIZE_READ) //FILE_ERROR("read error - while getting infoblock string size")
@@ -52,14 +52,14 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderBase::verifyFourCC(const char* fourCC)
+    CODE_LOCATION bool ReaderBase::verifyFourCC(const char* fourCC)
     {
         for (int i=0;i<4;i++)
             if (fourCC[i] < 32 || fourCC[i] > 126) return false;
         return true;
     }
 
-    bool ReaderBase::readInfoBlock(File &file, INFO &info)
+    CODE_LOCATION bool ReaderBase::readInfoBlock(File &file, INFO &info)
     {
         char fourCC[4];
         while (file.available() > 0)
@@ -102,7 +102,7 @@ namespace SF22ASWT
         return true;
     }
 
-    bool ReaderBase::read_sdta_block(File &file, sdta_rec_lazy &sdta)
+    CODE_LOCATION bool ReaderBase::read_sdta_block(File &file, sdta_rec_lazy &sdta)
     {
         char fourCC[4];
         while (file.available())
@@ -142,7 +142,7 @@ namespace SF22ASWT
         return true;
     }
 
-    void ReaderBase::FreePrevSampleData()
+    CODE_LOCATION void ReaderBase::FreePrevSampleData()
     {
         DebugPrintln("try to free prev loaded sampledata");
         for (int i = 0;i<sample_count;i++)
@@ -162,7 +162,7 @@ namespace SF22ASWT
         samples = nullptr;
     }
 
-    bool ReaderBase::ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam)
+    CODE_LOCATION bool ReaderBase::ReadSampleDataFromFile(instrument_data_temp &inst, bool forceUseInternalRam)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -267,7 +267,7 @@ namespace SF22ASWT
     }
 
 // #pragma region gen_get
-    bool ReaderBase::get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
+CODE_LOCATION bool ReaderBase::get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount)
     {
         bool globalExists = (bags[0].count != 0)?(bags[0].lastItem().sfGenOper != SFGenerator::sampleID):true;
         int bagIndex = globalExists?(sampleIndex+1):sampleIndex;
@@ -292,31 +292,41 @@ namespace SF22ASWT
         }
         return false;
     }
-    float ReaderBase::get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
+
+
+    CODE_LOCATION float ReaderBase::get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
     {
         SF2GeneratorAmount genval;
         float val = get_parameter_value(bags, sampleIndex, genType, &genval)?genval.centibels(): DEFAULT;
         return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
     }
-    float ReaderBase::get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN)
+
+
+    CODE_LOCATION float ReaderBase::get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN)
     {
         SF2GeneratorAmount genval;
         float val = get_parameter_value(bags, sampleIndex, genType, &genval)?genval.cents()*1000.0f: DEFAULT;
         return (val > MIN) ? val : MIN;
     }
-    float ReaderBase::get_hertz(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
+
+
+    CODE_LOCATION float ReaderBase::get_hertz(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX)
     {
         SF2GeneratorAmount genval;
         float val = get_parameter_value(bags, sampleIndex, genType, &genval)?genval.absolute_cents(): DEFAULT;
         return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
     }
-    int ReaderBase::get_pitch_cents(bag_of_gens* bags, int sampleIndex, SFGenerator genType, int DEFAULT, int MIN, int MAX)
+
+
+    CODE_LOCATION int ReaderBase::get_pitch_cents(bag_of_gens* bags, int sampleIndex, SFGenerator genType, int DEFAULT, int MIN, int MAX)
     {
         SF2GeneratorAmount genval;
         int val = get_parameter_value(bags, sampleIndex, genType, &genval)?genval.Amount: DEFAULT;
         return (val > MAX) ? MAX : ((val < MIN) ? MIN : val);
     }
-    int ReaderBase::get_cooked_loop_start(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+
+
+    CODE_LOCATION int ReaderBase::get_cooked_loop_start(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
     {
         int result = (int)(shdr.dwStartloop - shdr.dwStart);
         SF2GeneratorAmount genval;
@@ -324,7 +334,9 @@ namespace SF22ASWT
         result += get_parameter_value(bags, sampleIndex, SFGenerator::startloopAddrsCoarseOffset, &genval)?genval.coarse_offset():0;
         return result;
     }
-    int ReaderBase::get_cooked_loop_end(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+
+
+    CODE_LOCATION int ReaderBase::get_cooked_loop_end(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
     {
         int result = (int)(shdr.dwEndloop - shdr.dwStart);
         SF2GeneratorAmount genval;
@@ -332,17 +344,23 @@ namespace SF22ASWT
         result += get_parameter_value(bags, sampleIndex, SFGenerator::endloopAddrsCoarseOffset, &genval)?genval.coarse_offset():0;
         return result;
     }
-    int ReaderBase::get_sample_note(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    
+    
+    CODE_LOCATION int ReaderBase::get_sample_note(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
     {
         SF2GeneratorAmount genval;
         return get_parameter_value(bags, sampleIndex, SFGenerator::overridingRootKey, &genval)?genval.UAmount:((shdr.byOriginalKey <= 127)?shdr.byOriginalKey:60);
     }
-    int ReaderBase::get_fine_tuning(bag_of_gens* bags, int sampleIndex)
+    
+    
+    CODE_LOCATION int ReaderBase::get_fine_tuning(bag_of_gens* bags, int sampleIndex)
     {
         SF2GeneratorAmount genval;
         return get_parameter_value(bags, sampleIndex, SFGenerator::fineTune, &genval)?genval.Amount:0;
     }
-    bool ReaderBase::get_sample_header(File &file, sfbk_rec_lazy &sfbk, bag_of_gens* bags, int sampleIndex, shdr_rec *shdr)
+    
+    
+    CODE_LOCATION bool ReaderBase::get_sample_header(File &file, sfbk_rec_lazy &sfbk, bag_of_gens* bags, int sampleIndex, shdr_rec *shdr)
     {
         SF2GeneratorAmount genval;
         if (get_parameter_value(bags, sampleIndex, SFGenerator::sampleID, &genval) == false) return false;
@@ -351,14 +369,18 @@ namespace SF22ASWT
         if (file.read(shdr, shdr_rec::Size) != shdr_rec::Size) FILE_ERROR(PDTA_SHDR_DATA_READ)
         return true;
     }
-    bool ReaderBase::get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
+    
+    
+    CODE_LOCATION bool ReaderBase::get_sample_repeat(bag_of_gens* bags, int sampleIndex, bool defaultValue)
     {
         SF2GeneratorAmount genVal;
         if (get_parameter_value(bags, sampleIndex, SFGenerator::sampleModes, &genVal) == false){ DebugPrintln("could not get samplemode"); return defaultValue; }
         
         return (genVal.sample_mode() == SFSampleMode::kLoopContinuously);// || (val.sample_mode == SampleMode.kLoopEndsByKeyDepression);
     }
-    int ReaderBase::get_length(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
+    
+    
+    CODE_LOCATION int ReaderBase::get_length(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr)
     {
         int length = (int)(shdr.dwEnd - shdr.dwStart);
         int cooked_loop_end_val = get_cooked_loop_end(bags, sampleIndex, shdr);
@@ -368,12 +390,16 @@ namespace SF22ASWT
         }
         return length;
     }
-    int ReaderBase::get_key_range_end(bag_of_gens* bags, int sampleIndex)
+    
+    
+    CODE_LOCATION int ReaderBase::get_key_range_end(bag_of_gens* bags, int sampleIndex)
     {
         SF2GeneratorAmount genval;
         return get_parameter_value(bags, sampleIndex, SFGenerator::keyRange, &genval)?genval.rangeHigh():127;
     }
-    int ReaderBase::get_length_bits(int len)
+    
+    
+    CODE_LOCATION int ReaderBase::get_length_bits(int len)
     {
         int length_bits = 0;
         while (len != 0)
@@ -384,7 +410,8 @@ namespace SF22ASWT
         return length_bits;
     }
 
-    void ReaderBase::DebugPrintBagContents(bag_of_gens &gen)
+    
+    CODE_LOCATION void ReaderBase::DebugPrintBagContents(bag_of_gens &gen)
     {
         DebugPrint("bag contents:\n");
  #ifdef SF22ASWT_DEBUG

@@ -3,7 +3,7 @@
 
 namespace SF22ASWT
 {
-    bool Reader::ReadFile(String filePath)
+    CODE_LOCATION bool Reader::ReadFile(String filePath)
     {
         File file = SD.open(filePath.c_str());
         if (!file) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -68,7 +68,9 @@ namespace SF22ASWT
         file.close();
         return true;
     }
-    bool Reader::read_pdta_block(File &file)
+    
+    
+    CODE_LOCATION bool Reader::read_pdta_block(File &file)
     {
         char fourCC[4];
         uint32_t size = 0;
