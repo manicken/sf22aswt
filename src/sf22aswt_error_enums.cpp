@@ -351,7 +351,7 @@ namespace SF22ASWT::Error
     };
     int ErrorList_Size = sizeof(ErrorList) / sizeof(ErrorList[0]);
 
-    void PrintList(Print &printStream)
+    CODE_LOCATION void PrintList(Print &printStream)
     {
 
         printStream.print("Error count: "); printStream.print(ErrorList_Size-1); printStream.write('\n');
