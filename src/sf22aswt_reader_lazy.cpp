@@ -91,7 +91,36 @@ namespace SF22ASWT
         return true;
     }
 
+    //-----------------------------------------------------------------------
+    CODE_LOCATION static void JSONcallback(SF22ASWT::inst_rec& inst, void* params)
+    {
+        Print &printStream = *((Print*) params);
+
+        printStream.print("{\"name\":\"");
+        Helpers::printRawBytesUntil(printStream, inst.achInstName, 20, '\0');
+        printStream.print("\",\"ndx\":");
+        printStream.print(inst.wInstBagNdx);
+        printStream.print("},");
+    }
+
+
     CODE_LOCATION bool ReaderLazy::PrintInstrumentListAsJson(Print &printStream)
+    {
+        printStream.print("json:{\"instruments\":[");
+        if (!ProcessInstrumentList(JSONcallback, &printStream))
+            printStream.print("\"failed\"");
+        printStream.println("]}");
+
+        return true;
+    }
+    //-----------------------------------------------------------------------
+    
+    /*
+     * Generic function to scan the instrument list and execute a callback
+     * for every entry in it. This might be to print it in JSON format,
+     * or create a std::vector for use as part of a selection UI.
+     */
+    bool ReaderLazy::ProcessInstrumentList(void (*callback)(SF22ASWT::inst_rec& inst, void* params), void* params)
     {
         clearErrors();
         if (lastReadWasOK == false) { lastError = SF22ASWT::Errors::FILE_NOT_OPEN; return false; }
@@ -101,20 +130,14 @@ namespace SF22ASWT
         if (file.seek(sfbk.pdta.inst_position) == false) FILE_ERROR(PDTA_INST_DATA_SEEK)
 
         SF22ASWT::inst_rec inst;
-        printStream.print("json:{\"instruments\":[");
         for (uint32_t i = 0; i < sfbk.pdta.inst_count - 1; i++) // -1 the last is allways a EOI
         {
             file.read(&inst, SF22ASWT::inst_rec::Size);
-            printStream.print("{\"name\":\"");
-            Helpers::printRawBytesUntil(printStream, inst.achInstName, 20, '\0');
-            printStream.print("\",\"ndx\":");
-            printStream.print(inst.wInstBagNdx);
-            printStream.print("},");
+            callback(inst,params);
         }
         file.close();
-        printStream.println("]}");
         return true;
-    }
+    }    
 
     CODE_LOCATION bool ReaderLazy::PrintPresetListAsJson(Print &printStream)
     {
