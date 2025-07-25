@@ -104,7 +104,7 @@ namespace SF22ASWT
 
         void FreePrevSampleData();
 
-#pragma region gen_get_functions
+// #pragma region gen_get_functions
         bool get_parameter_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, SF2GeneratorAmount *amount);
         float get_decibel_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN, float MAX);
         float get_timecents_value(bag_of_gens* bags, int sampleIndex, SFGenerator genType, float DEFAULT, float MIN);
@@ -119,7 +119,7 @@ namespace SF22ASWT
         int get_length(bag_of_gens* bags, int sampleIndex, shdr_rec &shdr);
         int get_key_range_end(bag_of_gens* bags, int sampleIndex);
         int get_length_bits(int len);
-#pragma endregion
+// #pragma endregion
         void DebugPrintBagContents(bag_of_gens &gen);
     };
 };

@@ -4,7 +4,7 @@
 
 namespace SF22ASWT
 {
-    void sample_header_temp::PrintTo(Print &stream)
+    CODE_LOCATION void sample_header_temp::PrintTo(Print &stream)
     {
         stream.print("Sample Start:"); stream.print(sample_start);
         stream.print("\n, LOOP:"); stream.print(LOOP);
@@ -37,7 +37,7 @@ namespace SF22ASWT
         stream.print("\n, MOD_AMP_SCND_GAIN:"); stream.print(MOD_AMP_SCND_GAIN);
     }
 
-    void instrument_data_temp::PrintTo(Print &stream)
+    CODE_LOCATION void instrument_data_temp::PrintTo(Print &stream)
     {
         stream.print("Sample Count: "); stream.print(sample_count);
         stream.print("\n");
@@ -50,7 +50,7 @@ namespace SF22ASWT
         }
     }
 
-    void sfVersionTag::PrintTo(Print &stream)
+    CODE_LOCATION void sfVersionTag::PrintTo(Print &stream)
     {
         stream.print(major);
         stream.print(".");
@@ -58,7 +58,7 @@ namespace SF22ASWT
         stream.print(minor);
     }
 
-    void INFO::PrintTo(Print &stream)
+    CODE_LOCATION void INFO::PrintTo(Print &stream)
     {
         stream.println();
         stream.print("*** Info *** ( size: ");
@@ -77,7 +77,7 @@ namespace SF22ASWT
         stream.print("Tools: "); stream.println(ISFT);
     }
 
-    pdta_rec::pdta_rec()
+    CODE_LOCATION pdta_rec::pdta_rec()
     {
         phdr = new phdr_rec[0];
         pbag = new bag_rec[0];
@@ -90,7 +90,7 @@ namespace SF22ASWT
         shdr = new shdr_rec[0];
     }
 
-    void pdta_rec_lazy::CloneInto(pdta_rec_lazy &other)
+    CODE_LOCATION void pdta_rec_lazy::CloneInto(pdta_rec_lazy &other)
     {
         other.size = size;
         other.ibag_count = ibag_count;
@@ -113,20 +113,20 @@ namespace SF22ASWT
         other.shdr_position = shdr_position;
     }
 
-    void smpl_rec::CloneInto(smpl_rec &other)
+    CODE_LOCATION void smpl_rec::CloneInto(smpl_rec &other)
     {
         other.size = size;
         other.position = position;
     }
 
-    void sdta_rec_lazy::CloneInto(sdta_rec_lazy &other)
+    CODE_LOCATION void sdta_rec_lazy::CloneInto(sdta_rec_lazy &other)
     {
         other.size = size;
         smpl.CloneInto(other.smpl);
         sm24.CloneInto(other.sm24);
     }
 
-    void sfbk_rec_lazy::CloneInto(sfbk_rec_lazy &other)
+    CODE_LOCATION void sfbk_rec_lazy::CloneInto(sfbk_rec_lazy &other)
     {
         other.size = size;
         other.info_position = info_position;

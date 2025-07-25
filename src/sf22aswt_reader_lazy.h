@@ -23,6 +23,7 @@ namespace SF22ASWT
          *  all used blocks are stored into ram
          */
         bool ReadFile(const char * filePath);
+        bool ProcessInstrumentList(void (*callback)(SF22ASWT::inst_rec& inst, void* params), void* params);
         bool PrintInstrumentListAsJson(Print &printStream);
         bool PrintPresetListAsJson(Print &printStream);
         /**
