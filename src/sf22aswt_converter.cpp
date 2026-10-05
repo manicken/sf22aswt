@@ -33,7 +33,7 @@ namespace SF22ASWT::converter
             (int16_t*)sd.sample,
             sd.LOOP, // LOOP
             sd.LENGTH_BITS, // LENGTH_BITS
-            (float)((1 << (32 - sd.LENGTH_BITS)) * WAVETABLE_CENTS_SHIFT(sd.CENTS_OFFSET) * sd.SAMPLE_RATE / WAVETABLE_NOTE_TO_FREQUENCY(sd.SAMPLE_NOTE) / AUDIO_SAMPLE_RATE_EXACT + 0.5f), // PER_HERTZ_PHASE_INCREMENT
+            (float)((1 << (32 - sd.LENGTH_BITS)) * WAVETABLE_CENTS_SHIFT(sd.CENTS_OFFSET) * sd.SAMPLE_RATE / WAVETABLE_NOTE_TO_FREQUENCY(sd.SAMPLE_NOTE) / AUDIO_SAMPLE_RATE_EXACT), // PER_HERTZ_PHASE_INCREMENT
             ((uint32_t)sd.LENGTH - 1) << (32 - sd.LENGTH_BITS), // MAX_PHASE
             ((uint32_t)sd.LOOP_END - 1) << (32 - sd.LENGTH_BITS), // LOOP_PHASE_END
             (((uint32_t)sd.LOOP_END - 1) << (32 - sd.LENGTH_BITS)) - (((uint32_t)sd.LOOP_START - 1) << (32 - sd.LENGTH_BITS)), // LOOP_PHASE_LENGTH
